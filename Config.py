@@ -332,6 +332,9 @@ def __update_settings(old_settings):  # 升级配置文件
         del new_settings['coolq_settings']['api']
         del new_settings['coolq_settings']['SSL']
 
+    if 'only_use_vip' not in new_settings.keys():
+        new_settings['only_use_vip'] = False
+
     new_settings['config_version'] = latest_config_version
     with open(config_path, 'w', encoding='utf-8') as f:
         json.dump(new_settings, f, ensure_ascii=False, indent=4)

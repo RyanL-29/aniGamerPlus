@@ -683,16 +683,24 @@ class Anime():
         err_print(self._sn, '下載狀態', filename + ' 下載完成, 正在解密合并……')
         Config.tasks_progress_rate[int(self._sn)]['status'] = '下載完成'
 
-        # 构造 ffmpeg 命令
-        ffmpeg_cmd = [self._ffmpeg_path,
+        if self._settings['video_filename_extension'] == "mp4":
+                # 构造 ffmpeg 命令
+                ffmpeg_cmd = [self._ffmpeg_path,
                       '-allowed_extensions', 'ALL',
                       '-i', m3u8_path,
                       '-i', os.path.join(temp_dir, 'cover.jpg'),
                       '-map', '1',
                       '-map', '0',
                       '-c', 'copy', 
-                      '-disposition:0', 'attached_pic',
+                      '-disposition:v:0', 'attached_pic',
                       merging_file,
+                      '-y']
+        else:
+                # 构造 ffmpeg 命令
+                ffmpeg_cmd = [self._ffmpeg_path,
+                      '-allowed_extensions', 'ALL',
+                      '-i', m3u8_path,
+                      '-c', 'copy', merging_file,
                       '-y']
 
         if self._settings['faststart_movflags']:

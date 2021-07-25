@@ -31,4 +31,5 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
     - name: Build package
+      shell: cmd
       run: pyinstaller --noconfirm --onefile --console --icon %~dp0aniGamerPlus_0000.ico --clean --add-data %~dp0;aniGamerPlus/  %~dp0aniGamerPlus.py

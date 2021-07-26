@@ -28,11 +28,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
-    - name: Build package
+    - name: Build exe
       run: pyinstaller --noconfirm --onefile --console --icon %cd%\aniGamerPlus_0000.ico --clean --add-data %cd%;aniGamerPlus/  %cd%\aniGamerPlus.py
       shell: cmd
-    - name: Upload math result for job 2
+    - name: Upload exe
       uses: actions/upload-artifact@v2
       with:
        name: anigamer_artifacts
-       path: aniGamerPlus.exe
+       path: dist/aniGamerPlus.exe

@@ -738,6 +738,16 @@ class Anime():
         else:
             shutil.move(merging_file, output_file)  # 此方法在遇到rclone挂载盘时会出错
 
+        # 測試一下這個是否存取拒絕的錯誤
+        def onerror(func, path, exc_info):
+            import stat
+            if not os.access(path, os.W_OK):
+                # Is the error an access error ?
+                os.chmod(path, stat.S_IWUSR)
+                func(path)
+            else:
+                raise
+
         # 删除临时目录
         shutil.rmtree(temp_dir, onerror=onerror)
 

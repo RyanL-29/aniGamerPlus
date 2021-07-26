@@ -6,11 +6,9 @@ on:
   push:
     branches:
       - master
-      - commit_build
   pull_request:
     branches:
       - master
-      - commit_build
     
 jobs:
   build:

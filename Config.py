@@ -15,9 +15,9 @@ from urllib.parse import urlencode
 
 # determine if application is a script file or frozen exe
 if getattr(sys, 'frozen', False):
-    application_path = os.path.dirname(sys.executable)
+    working_dir = os.path.dirname(sys.executable)
 elif __file__:
-    application_path = os.path.dirname(__file__)
+    working_dir = os.path.dirname(__file__)
 #working_dir = os.path.dirname(sys.executable)  # 使用 pyinstaller 编译时，打开此项
 config_path = os.path.join(working_dir, 'config.json')
 sn_list_path = os.path.join(working_dir, 'sn_list.txt')

@@ -1,11 +1,13 @@
 {
   "ExpandedNodes": [
     "",
+    "\\.github",
+    "\\.github\\workflows",
     "\\Dashboard",
     "\\Dashboard\\static",
     "\\Dashboard\\static\\js",
     "\\Dashboard\\templates"
   ],
-  "SelectedNode": "\\Anime.py",
+  "SelectedNode": "\\.github\\workflows\\Python-build.yml",
   "PreviewInSolutionExplorer": false
 }

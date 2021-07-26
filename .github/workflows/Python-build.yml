@@ -34,5 +34,5 @@ jobs:
     - name: Upload exe
       uses: actions/upload-artifact@v2
       with:
-       name: anigamer_artifacts
+       name: anigamer_artifacts_${{ matrix.python }}
        path: dist/aniGamerPlus.exe

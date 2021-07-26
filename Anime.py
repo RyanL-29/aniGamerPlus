@@ -749,7 +749,7 @@ class Anime():
                 raise
 
         # 删除临时目录
-        shutil.rmtree(temp_dir, onerror=onerror)
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
         self.local_video_path = output_file  # 记录保存路径, FTP上传用
         self._video_filename = filename  # 记录文件名, FTP上传用

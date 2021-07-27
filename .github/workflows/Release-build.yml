@@ -54,5 +54,5 @@ jobs:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         automatic_release_tag: "v${{ env.RELEASE_TITLE }}"
         prerelease: false
-        title: "${{ env.RRELEASE_TITLE }}"
+        title: "${{ env.RELEASE_TITLE }}"
         files: ${{ env.RELEASE_FILENAME }}

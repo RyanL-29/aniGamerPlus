@@ -4,9 +4,11 @@
  <img alt="GitHub" src="https://img.shields.io/github/license/RyanL-29/aniGamerPlus.svg?style=flat-square">
  <img alt="GitHub release" src="https://img.shields.io/github/release/RyanL-29/aniGamerPlus.svg?style=flat-square">
  <img alt="GitHub Release Date" src="https://img.shields.io/github/release-date/RyanL-29/aniGamerPlus.svg?style=flat-square">
- <img alt="GitHub Releases" src="https://img.shields.io/github/downloads/RyanL-29/aniGamerPlus/latest/total.svg?style=flat-square">
+ <img alt="GitHub Releases" src="https://img.shields.io/github/downloads/RyanL-29/aniGamerPlus/latest/total.svg?style=flat-square"></br>
+ <p align="center">
  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/RyanL-29/aniGamerPlus/aniGamerPlus%20Build%20Release?label=Release%20Build">
  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/RyanL-29/aniGamerPlus/aniGamerPlus%20Build%20Artifact?label=Artifact%20Build">
+ </p>
 </p>
 
 巴哈姆特動畫瘋自動下載工具, 可隨著番劇更新自動下載, 適合部署在全天開機的伺服器或NAS上.

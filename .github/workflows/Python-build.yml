@@ -32,6 +32,18 @@ jobs:
     - name: Build exe
       run: pyinstaller --noconfirm --distpath %cd%\ --onefile --console --icon %cd%\Dashboard\static\img\aniGamerPlus.ico --clean --add-data %cd%;aniGamerPlus/  %cd%\aniGamerPlus.py
       shell: cmd
+    - name: Copy exe out
+      run: copy dist/aniGamerPlus.exe aniGamerPlus.exe
+      shell: cmd
+    - name: Copy exe out
+      run: copy dist/aniGamerPlus.exe aniGamerPlus.exe
+      shell: cmd
+    - name: Copy exe out
+      run: copy dist/aniGamerPlus.exe aniGamerPlus.exe
+      shell: cmd
+    - name: Copy exe out
+      run: copy dist/aniGamerPlus.exe aniGamerPlus.exe
+      shell: cmd
     - name: Upload exe
       uses: actions/upload-artifact@v2
       with:

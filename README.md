@@ -1,4 +1,4 @@
-<h1 align="center">aniGamerPlus</h1>
+<h1 align="center">aniGamerPlus (Ryan Addition)</h1>
 
 <p align="center">
  <img alt="GitHub" src="https://img.shields.io/github/license/miyouzi/aniGamerPlus.svg?style=flat-square">
@@ -161,6 +161,7 @@ docker run -td --name anigamerplus \
     "segment_max_retry": 8,  # 在分段下載模式時有效, 每個分段最大重試次數, -1 為無限重試
     "multi_downloading_segment": 3,  # 每個影片最大并發下載分段數, 僅在 "segment_download_mode" 為 true 時有效, 最高為 5, 超過將重置為 5
     "add_bangumi_name_to_video_filename": true,  # 如果為 false, 則只有劇集名, 若劇集名為個位數字, 則補零
+    "add_bangumi_name_to_video_meta": true, #把封面及介紹寫到影片檔 meta (封面僅限 mp4 副檔名)
     "add_resolution_to_video_filename": true,  # 是否在影片檔名中添加清晰度, 格式舉例: [1080P]
     "customized_video_filename_prefix": "【動畫瘋】",  # 影片檔名前綴
     "customized_bangumi_name_suffix": "",  # 影片檔名中番劇名的后缀, 在劇集名之前

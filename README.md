@@ -29,7 +29,7 @@ windows 使用者可以[**點擊這裡**](https://github.com/miyouzi/aniGamerPlu
 
 Python 版本 3 以上
 
-**使用前确认已安装好依赖**
+**使用前確認已安裝好依賴**
 ```
 pip3 install requests beautifulsoup4 lxml termcolor chardet pysocks
 pip3 install Flask Flask_BasicAuth Flask_Sockets gevent gevent_websocket

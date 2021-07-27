@@ -5,7 +5,7 @@ name: aniGamerPlus Build Release
 on:
   push:
     tags:
-      - v*
+      - v.*
 jobs:
   build:
     runs-on: windows-2019

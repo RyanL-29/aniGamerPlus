@@ -572,12 +572,14 @@ class Anime():
             os.makedirs(temp_dir)
 
         anime_meta = self._src.find_all('meta')
+
+        if not self._settings['use_mobile_api']:
+            anime_desciption = self._src.find('div', 'data_intro').p.string
+        else:
+            anime_desciption = ""
+
         for m in anime_meta:
-            if m.get('name') == 'description':
-                raw_anime_desciption = m.get('content')
-                process_anime_desciption = raw_anime_desciption.split("線上看!", 1)
-                anime_desciption = process_anime_desciption[1]
-            elif m.get('name') == 'thumbnail':
+              if m.get('name') == 'thumbnail':
                 anime_cover_link = m.get('content')
 
         urllib.request.urlretrieve(anime_cover_link, os.path.join(temp_dir, 'cover.jpg'))

@@ -4,9 +4,11 @@
  <img alt="GitHub" src="https://img.shields.io/github/license/RyanL-29/aniGamerPlus.svg?style=flat-square">
  <img alt="GitHub release" src="https://img.shields.io/github/release/RyanL-29/aniGamerPlus.svg?style=flat-square">
  <img alt="GitHub Release Date" src="https://img.shields.io/github/release-date/RyanL-29/aniGamerPlus.svg?style=flat-square">
- <img alt="GitHub Releases" src="https://img.shields.io/github/downloads/RyanL-29/aniGamerPlus/latest/total.svg?style=flat-square">
- <img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/RyanL-29/aniGamerPlus/aniGamerPlus%20Build%20Release?label=Release%20Build">
- <img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/RyanL-29/aniGamerPlus/aniGamerPlus%20Build%20Artifact?label=Artifact%20Build">
+ <img alt="GitHub Releases" src="https://img.shields.io/github/downloads/RyanL-29/aniGamerPlus/latest/total.svg?style=flat-square"></br>
+ <p align="center">
+ <img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/RyanL-29/aniGamerPlus/aniGamerPlus%20Build%20Release?label=Release%20Build&style=flat-square">
+ <img alt="GitHub Workflow Status" src="https://img.shields.io/github/workflow/status/RyanL-29/aniGamerPlus/aniGamerPlus%20Build%20Artifact?label=Artifact%20Build&style=flat-square">
+ </p>
 </p>
 
 巴哈姆特動畫瘋自動下載工具, 可隨著番劇更新自動下載, 適合部署在全天開機的伺服器或NAS上.
@@ -27,7 +29,7 @@ windows 使用者可以[**點擊這裡**](https://github.com/miyouzi/aniGamerPlu
 
 Python 版本 3 以上
 
-**使用前确认已安装好依赖**
+**使用前確認已安裝好依賴**
 ```
 pip3 install requests beautifulsoup4 lxml termcolor chardet pysocks
 pip3 install Flask Flask_BasicAuth Flask_Sockets gevent gevent_websocket

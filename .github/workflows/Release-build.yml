@@ -28,6 +28,10 @@ jobs:
         echo ("RELEASE_VERSION=" + $env:GITHUB_REF.replace('refs/tags/', '')) >> $env:GITHUB_ENV
         echo ("RELEASE_TITLE=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_ryan_fork_windows_64bit") >> $env:GITHUB_ENV
         echo ("RELEASE_FILENAME=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_ryan_fork_windows_64bit.zip") >> $env:GITHUB_ENV
+        git fetch --tags --force
+    - name: Get tag message
+      id: tag_data
+      uses: ericcornelissen/git-tag-annotation-action@v1
     - name: Test ENV
       run: |
         echo $RELEASE_VERSION
@@ -56,18 +60,18 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
       with:
-        tag_name: ${{ env.RELEASE_VERSION }}
+        tag_name: ${{ env.RELEASE_TITLE }}
         release_name: "${{ env.RELEASE_TITLE }}"
-        body: |
-          ${{ steps.tag_data.outputs.git-tag-annotation }}
+        body: ${{ steps.tag_data.outputs.git-tag-annotation }}
+        draft: false
+        prerelease: true
     - name: Upload Release Asset
       id: upload-release-asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "${{ env.RELEASE_TITLE }}"
-        prerelease: false
-        title: "${{ env.RELEASE_TITLE }}"
-        files: ${{ env.RELEASE_FILENAME }}
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+        asset_path: ./${{ env.RELEASE_FILENAME }}
+        asset_name: ${{ env.RELEASE_FILENAME }}
+        asset_content_type: application/zip

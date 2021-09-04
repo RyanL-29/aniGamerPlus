@@ -448,21 +448,13 @@ class Anime():
 
         def parse_playlist():
             req = self._playlist['src']
-            f = self.__request(req, no_cookies=True)
+            f = self.__request(req, no_cookies=True, addition_header={"referer": "https://ani.gamer.com.tw/"})
             url_prefix = re.sub(r'playlist.+', '', self._playlist['src'])  # m3u8 URL 前缀
-            m3u8_list = re.findall(r'BANDWIDTH.+\n+chunklist.+', f.content.decode())  # 将包含 m3u8 文件提取
+            m3u8_list = re.findall(r'=\d+x\d+\n.+', f.content.decode())  # 将包含分辨率和 m3u8 文件提取
             m3u8_dict = {}
             for i in m3u8_list:
-                key = re.findall(r'=BANDWIDTH=\d+', i)[0]  # 提取分辨率
-                key = re.findall(r'\d+', key)[0][1:]  # 提取纵向像素数
-                if key <= 400000:
-                    key = 360
-                elif key <= 800000:
-                    key = 540
-                elif key <= 1200000:
-                    key = 720
-                elif key >= 5000000:
-                    key = 1080
+                key = re.findall(r'=\d+x\d+', i)[0]  # 提取分辨率
+                key = re.findall(r'x\d+', key)[0][1:]  # 提取纵向像素数，作为 key
                 value = re.findall(r'.*chunklist.+', i)[0]  # 提取 m3u8 文件
                 value = url_prefix + value  # 组成完整的 m3u8 URL
                 m3u8_dict[key] = value

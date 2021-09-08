@@ -724,7 +724,7 @@ def renew_cookies(new_cookie, log=True):
 
 
 def read_latest_version_on_github():
-    req = 'https://api.github.com/repos/miyouzi/aniGamerPlus/releases/latest'
+    req = 'https://api.github.com/repos/RyanL-29/aniGamerPlus/releases/latest'
     session = requests.session()
     remote_version = {}
     try:

@@ -600,7 +600,7 @@ class Anime():
             f.write(m3u8_text)
             pass
         key_uri = re.search(r'.+URI=.+m3u8key.+', m3u8_text).group()  # 找到包含 key 的行
-        key_uri = re.sub(r'.+URI="', '', key_uri)[0:-1]  # 把 key 的链接提取出来
+        key_uri = key_uri.split('URI="')[1].split('",IV=')[0]  # 把 key 的链接提取出来
         original_key_uri = key_uri
 
         if not re.match(r'http.+', key_uri):

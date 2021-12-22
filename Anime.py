@@ -354,12 +354,15 @@ class Anime():
                         self._cookies['ANIME_SIGN'] = f.cookies.get_dict()['ANIME_SIGN']
                         Config.renew_cookies(self._cookies, log=False)
 
+                elif 'cf_use_ob' in f.headers.get('set-cookie') and 'BAHARUNE' not in f.headers.get('set-cookie'):
+                    # 20211222 預防網絡不穩造成更新出錯
+                    err_print(self._sn, '網絡不穩定暫停cookie更新一次', display=False)
+
                 else:  # 这是第一步
                     # 本线程收到了新cookie
                     err_print(self._sn, '收到新cookie', display=False)
                     Config.renew_cookies(f.cookies.get_dict())  # 保存一半新cookie
                     self._cookies = Config.read_cookie()  # 载入一半新cookie
-                    err_print(self._sn, '新cookie: ' + self._cookies, display=False)
                     self.__request('https://ani.gamer.com.tw/')  # 马上完成cookie刷新第二步, 以免正好在刚要解析m3u8时掉链子
                     # 20210724 动画疯一步到位刷新 Cookie
                     err_print(0, '用戶cookie已更新', status=2, no_sn=True)

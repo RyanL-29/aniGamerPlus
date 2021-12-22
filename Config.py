@@ -719,7 +719,7 @@ def renew_cookies(new_cookie, log=True):
             try_counter = try_counter + 1
         else:
             if log:
-                __color_print(0, '新cookie保存成功', no_sn=True, display=False)
+                __color_print(0, '新cookie保存成功:' + new_cookie_str, no_sn=True, display=False)
             break
 
 

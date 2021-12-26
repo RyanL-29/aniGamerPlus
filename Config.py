@@ -21,7 +21,7 @@ config_path = os.path.join(working_dir, 'config.json')
 sn_list_path = os.path.join(working_dir, 'sn_list.txt')
 cookie_path = os.path.join(working_dir, 'cookie.txt')
 logs_dir = os.path.join(working_dir, 'logs')
-aniGamerPlus_version = 'aniGamerPlus_v22.55_ryan_fork_windows_64bit'
+aniGamerPlus_version = 'aniGamerPlus_v22.6_ryan_fork_windows_64bit'
 latest_config_version = 15.3
 latest_database_version = 2.0
 cookie = None
@@ -719,7 +719,7 @@ def renew_cookies(new_cookie, log=True):
             try_counter = try_counter + 1
         else:
             if log:
-                __color_print(0, '新cookie保存成功:' + new_cookie_str, no_sn=True, display=False)
+                __color_print(0, '新cookie保存成功', no_sn=True, display=False)
             break
 
 

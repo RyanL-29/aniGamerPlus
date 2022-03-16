@@ -21,8 +21,8 @@ config_path = os.path.join(working_dir, 'config.json')
 sn_list_path = os.path.join(working_dir, 'sn_list.txt')
 cookie_path = os.path.join(working_dir, 'cookie.txt')
 logs_dir = os.path.join(working_dir, 'logs')
-aniGamerPlus_version = 'aniGamerPlus_v22.6_ryan_fork_windows_64bit'
-latest_config_version = 15.3
+aniGamerPlus_version = 'aniGamerPlus_v23_ryan_fork_windows_64bit'
+latest_config_version = 16
 latest_database_version = 2.0
 cookie = None
 max_multi_thread = 5
@@ -127,10 +127,17 @@ def __init_settings():
                 },
                 'telebot_notify': False,
                 'telebot_token': "",
+                'discord_notify': False,
+                'discord_token': '',
+                'plex_refresh': False,
+                'plex_url': '',
+                'plex_token': '',
+                'plex_section': '',
                 'faststart_movflags': False,
                 'audio_language': False,
                 'use_mobile_api': False,
                 'danmu': False,
+                'danmu_ban_words': [],
                 'check_latest_version': True,  # 是否检查新版本
                 'read_sn_list_when_checking_update': True,
                 'read_config_when_checking_update': True,
@@ -255,6 +262,18 @@ def __update_settings(old_settings):  # 升级配置文件
         new_settings['telebot_notify'] = False
         new_settings['telebot_token'] = ""
 
+    if 'discord_notify' not in new_settings.keys():
+        # 新增推送通知到TG的功能
+        new_settings['discord_notify'] = False
+        new_settings['discord_token'] = ''
+
+    if 'plex_refresh' not in new_settings.keys():
+        # 新增 plex 自動更新
+        new_settings['plex_refresh'] = False
+        new_settings['plex_url'] = ''
+        new_settings['plex_token'] = ''
+        new_settings['plex_section'] = ''
+
     if 'faststart_movflags' not in new_settings.keys():
         # v9.0 新增功能: 将 metadata 移至视频文件头部
         # 此功能可以更快的在线播放视频
@@ -301,6 +320,9 @@ def __update_settings(old_settings):  # 升级配置文件
         # 支持下载弹幕
         # https://github.com/miyouzi/aniGamerPlus/pull/66
         new_settings['danmu'] = False
+
+    if 'danmu_ban_words' not in new_settings.keys():
+        new_settings['danmu_ban_words'] = []
 
     if 'use_mobile_api' not in new_settings.keys():
         # v21.0 新增使用APP API #69

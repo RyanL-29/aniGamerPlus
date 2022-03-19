@@ -113,7 +113,7 @@ class Anime:
 
     def __get_src(self):
         if self._settings['use_mobile_api']:
-            self._src = self.__request(f'https://api.gamer.com.tw/mobile_app/anime/v1/video.php?sn={self._sn}', no_cookies=True).json()
+            self._src = self.__request(f'https://api.gamer.com.tw/mobile_app/anime/v2/video.php?sn={self._sn}', no_cookies=True).json()
         else:
             req = f'https://ani.gamer.com.tw/animeVideo.php?sn={self._sn}'
             f = self.__request(req, no_cookies=True)
@@ -122,7 +122,7 @@ class Anime:
     def __get_title(self):
         if self._settings['use_mobile_api']:
             try:
-                self._title = self._src['anime']['title']
+                self._title = self._src['data']['anime']['title']
             except KeyError:
                 err_print(self._sn, 'ERROR: 該 sn 下真的有動畫？', status=1)
                 self._episode_list = {}
@@ -176,14 +176,18 @@ class Anime:
 
     def __get_episode_list(self):
         if self._settings['use_mobile_api']:
-            for _type in self._src['anime']['volumes']:
-                for _sn in self._src['anime']['volumes'][_type]:
-                    if _type == '0':
+            for _type in self._src['data']['anime']['volumes']:
+                for _sn in self._src['data']['anime']['volumes'][_type]:
+                    if _type == '0': # 本篇
                         self._episode_list[str(_sn['volume'])] = int(_sn["video_sn"])
-                    elif _type == '1' or _type == '4':
-                        self._episode_list[self._src["videoTypeList"][int(_type)]["name"]] = int(_sn["video_sn"])
-                    else:
-                        self._episode_list[f'{self._src["videoTypeList"][int(_type)]["name"]} {_sn["volume"]}'] = int(_sn["video_sn"])
+                    elif _type == '1': # 電影
+                        self._episode_list['電影'] = int(_sn["video_sn"])
+                    elif _type == '2': # 特別篇
+                        self._episode_list[f'特別篇{_sn["volume"]}'] = int(_sn["video_sn"])
+                    elif _type == '3': # 中文配音
+                        self._episode_list[f'中文配音{_sn["volume"]}'] = int(_sn["video_sn"])
+                    else: # 中文電影
+                        self._episode_list['中文電影'] = int(_sn["video_sn"])
         else:
             try:
                 a = self._src.find('section', 'season').find_all('a')
@@ -218,10 +222,9 @@ class Anime:
         accept_encoding = 'gzip, deflate'
         cache_control = 'max-age=0'
         self._mobile_header = {
-            "User-Agent": "Bahadroid (https://www.gamer.com.tw/)",
-            "X-Bahamut-App-InstanceId": "cAJB-HprGUg",
+            "User-Agent": "Animad/1.12.5 (tw.com.gamer.android.animad; build: 222; Android 5.1.1) okHttp/4.4.0",
             "X-Bahamut-App-Android": "tw.com.gamer.android.animad",
-            "X-Bahamut-App-Version": "177",
+            "X-Bahamut-App-Version": "222",
             "Accept-Encoding": "gzip",
             "Connection": "Keep-Alive"
         }
@@ -360,7 +363,7 @@ class Anime:
 
         def gain_access():
             if self._settings['use_mobile_api']:
-                req = f'https://ani.gamer.com.tw/ajax/token.php?adID=0&sn={str(self._sn)}'
+                req = f'https://ani.gamer.com.tw/ajax/token.php?adID=0&sn={str(self._sn)}&device={self._device_id}'
             else:
                 req = 'https://ani.gamer.com.tw/ajax/token.php?adID=0&sn=' + str(
                     self._sn) + "&device=" + self._device_id + "&hash=" + random_string(12)
@@ -425,7 +428,7 @@ class Anime:
 
         def parse_playlist():
             req = self._playlist['src']
-            f = self.__request(req, no_cookies=True, addition_header={"referer": "https://ani.gamer.com.tw/"})
+            f = self.__request(req, no_cookies=True, addition_header={'origin': 'https://ani.gamer.com.tw'})
             url_prefix = re.sub(r'playlist.+', '', self._playlist['src'])  # m3u8 URL 前缀
             m3u8_list = re.findall(r'=\d+x\d+\n.+', f.content.decode())  # 将包含分辨率和 m3u8 文件提取
             m3u8_dict = {}
@@ -925,7 +928,7 @@ class Anime:
         # 推送 CQ 通知
         if self._settings['coolq_notify']:
             try:
-                msg = '【aniGamerPlus消息】\n《' + self._video_filename + '》下载完成, 本集 ' + str(self.video_size) + ' MB'
+                msg = '【aniGamerPlus消息】\n《' + self._video_filename + '》下載完成, 本集 ' + str(self.video_size) + ' MB'
                 if self._settings['coolq_settings']['message_suffix']:
                     # 追加用户信息
                     msg = msg + '\n\n' + self._settings['coolq_settings']['message_suffix']
@@ -943,7 +946,7 @@ class Anime:
         # 推送 TG 通知
         if self._settings['telebot_notify']:
             try:
-                msg = '【aniGamerPlus消息】\n《' + self._video_filename + '》下载完成, 本集 ' + str(self.video_size) + ' MB'
+                msg = '【aniGamerPlus消息】\n《' + self._video_filename + '》下載完成, 本集 ' + str(self.video_size) + ' MB'
                 vApiTokenTelegram = self._settings['telebot_token']
                 apiMethod = "getUpdates"
                 api_url = "https://api.telegram.org/bot" + vApiTokenTelegram + "/" + apiMethod # Telegram bot api url
@@ -982,8 +985,8 @@ class Anime:
                         'name': '🔔 動畫瘋'
                     }}]}
             r = requests.post(url, json=data)
-            if r.status_code != 200:
-                err_print(self._sn, 'discord NOTIFY ERROR', "Exception: Send msg error\nReq: " + req, status=1)
+            if ("wait" in url and r.status_code != 200) or (not "wait" in url and r.status_code != 204):
+                err_print(self._sn, 'discord NOTIFY ERROR', "Exception: Send msg error\nReq: " + r.text, status=1)
 
         # plex 自動更新媒體庫
         if self._settings['plex_refresh']:

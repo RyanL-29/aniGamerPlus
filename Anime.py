@@ -990,14 +990,17 @@ class Anime:
 
         # plex 自動更新媒體庫
         if self._settings['plex_refresh']:
-            url = 'https://{plex_url}/library/sections/{plex_section}/refresh?X-Plex-Token={plex_token}'.format(
-                plex_url=self._settings['plex_url'],
-                plex_section=self._settings['plex_section'],
-                plex_token=self._settings['plex_token']
-            )
-            r = requests.get(url)
-            if r.status_code != 200:
-                err_print(self._sn, 'Plex auto Refresh ERROR', status=1)
+            try:
+                url = 'https://{plex_url}/library/sections/{plex_section}/refresh?X-Plex-Token={plex_token}'.format(
+                    plex_url=self._settings['plex_url'],
+                    plex_section=self._settings['plex_section'],
+                    plex_token=self._settings['plex_token']
+                )
+                r = requests.get(url)
+                if r.status_code != 200:
+                    err_print(self._sn, 'Plex auto Refresh ERROR', status=1)
+            except:
+                err_print(self._sn, 'Plex auto Refresh UNKNOWN ERROR', 'Exception: ' + str(e), status=1)
 
     def upload(self, bangumi_tag='', debug_file=''):
         first_connect = True  # 标记是否是第一次连接, 第一次连接会删除临时缓存目录

@@ -142,7 +142,7 @@ def __init_settings():
                 'read_sn_list_when_checking_update': True,
                 'read_config_when_checking_update': True,
                 'ads_time': 25,
-                "mobile_ads_time": 3,
+                'mobile_ads_time': 3,
                 'use_dashboard': True,
                 'dashboard': {
                     'host': '127.0.0.1',

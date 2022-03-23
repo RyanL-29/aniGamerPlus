@@ -231,7 +231,6 @@ def worker(sn, sn_info, realtime_show_file_size=False):
         # 兜一下各种奇奇怪怪的错误
         err_print(sn, '下載異常', '發生未知錯誤: '+str(e), status=1)
         err_print(sn, '下載異常', '異常詳情:\n'+traceback.format_exc(), status=1, display=False)
-        err_print(sn, 'Trace Log', '異常詳情:\n'+bangumi_tag + ' ' + rename + ' ' + realtime_show_file_size, status=1, display=False)
         anime.video_size = 0
 
     if anime.video_size < 5:

@@ -554,7 +554,7 @@ class Anime:
         anime_meta = self._src.find_all('meta')
 
         if not self._settings['use_mobile_api']:
-            raw_anime_desciption = self._src.find('div', 'data_intro').p.string
+            raw_anime_desciption = self._src.find('div', 'data_intro').p.string or ""
             anime_desciption = re.sub(r'\s+', ' ', raw_anime_desciption)  # 去除重复空格
         else:
             anime_desciption = ""

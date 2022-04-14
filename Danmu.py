@@ -22,7 +22,9 @@ class Danmu():
     def find_ban_word(self, text, ban_word_re):
         # https://github.com/miyouzi/aniGamerPlus/issues/179
         # 修復跳過彈幕
-        return ban_word_re.search(text).group() != ""
+        result = ban_word_re.search(text)
+        # 確認不是匹配到空字串
+        return result and result.group(0)
 
     def download(self, ban_words):
         h = {

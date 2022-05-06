@@ -22,7 +22,7 @@ sn_list_path = os.path.join(working_dir, 'sn_list.txt')
 cookie_path = os.path.join(working_dir, 'cookie.txt')
 logs_dir = os.path.join(working_dir, 'logs')
 aniGamerPlus_version = 'aniGamerPlus_v23.5_ryan_fork_windows_64bit'
-latest_config_version = 16
+latest_config_version = 16.2
 latest_database_version = 2.0
 cookie = None
 max_multi_thread = 5
@@ -81,6 +81,7 @@ def __init_settings():
     settings = {'bangumi_dir': '',
                 'temp_dir': '',
                 'classify_bangumi': True,  # 控制是否建立番剧目录
+                'classify_season': False,  # 控制是否建立季度子目录
                 'check_frequency': 5,  # 检查 cd 时间, 单位分钟
                 'download_resolution': '1080',  # 下载分辨率
                 'lock_resolution': False,  # 锁定分辨率, 如果分辨率不存在, 则宣布下载失败
@@ -127,12 +128,15 @@ def __init_settings():
                 },
                 'telebot_notify': False,
                 'telebot_token': "",
+                'telebot_use_chat_id': False,
+                'telebot_chat_id': "",
                 'discord_notify': False,
                 'discord_token': '',
                 'plex_refresh': False,
                 'plex_url': '',
                 'plex_token': '',
                 'plex_section': '',
+                'plex_naming': False, # 適配PLEX命名規則
                 'faststart_movflags': False,
                 'audio_language': False,
                 'use_mobile_api': False,
@@ -222,6 +226,9 @@ def __update_settings(old_settings):  # 升级配置文件
     if 'classify_bangumi' not in new_settings.keys():
         new_settings['classify_bangumi'] = True  # v5.0 新增是否建立番剧目录开关
 
+    if 'classify_season' not in new_settings.keys():
+        new_settings['classify_season'] = False  # 新增是否建立番剧季度子目錄
+
     if 'use_copyfile_method' not in new_settings.keys():
         # v6.0 新增视频转移方法开关, 配置 True 以适配 rclone 挂载盘
         new_settings['use_copyfile_method'] = False
@@ -261,6 +268,8 @@ def __update_settings(old_settings):  # 升级配置文件
         # 新增推送通知到TG的功能
         new_settings['telebot_notify'] = False
         new_settings['telebot_token'] = ""
+        new_settings['telebot_use_chat_id'] = False
+        new_settings['telebot_chat_id'] = ""
 
     if 'discord_notify' not in new_settings.keys():
         # 新增推送通知到TG的功能
@@ -273,6 +282,7 @@ def __update_settings(old_settings):  # 升级配置文件
         new_settings['plex_url'] = ''
         new_settings['plex_token'] = ''
         new_settings['plex_section'] = ''
+        new_settings['plex_naming'] = False
 
     if 'faststart_movflags' not in new_settings.keys():
         # v9.0 新增功能: 将 metadata 移至视频文件头部

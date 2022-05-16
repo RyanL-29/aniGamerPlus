@@ -549,7 +549,7 @@ class Anime:
             else:
                 episode = '[S01E' + episode + ']' # as season 1 if there is no matching above types
         else:
-            episode = '[' + episode + ']'
+            episode = '' + episode + ''
 
         if self._settings['add_bangumi_name_to_video_filename']:
             # 如果用户需要番剧名

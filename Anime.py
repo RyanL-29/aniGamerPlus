@@ -121,7 +121,7 @@ class Anime:
             self._src = self.__request(f'https://api.gamer.com.tw/mobile_app/anime/v2/video.php?sn={self._sn}', no_cookies=True).json()
         else:
             req = f'https://ani.gamer.com.tw/animeVideo.php?sn={self._sn}'
-            f = self.__request(req, no_cookies=False)
+            f = self.__request(req, no_cookies=True)
             self._src = BeautifulSoup(f.content, "lxml")
 
     def __get_title(self):
@@ -438,7 +438,7 @@ class Anime:
 
         def parse_playlist():
             req = self._playlist['src']
-            f = self.__request(req, no_cookies=False, addition_header={'origin': 'https://ani.gamer.com.tw'})
+            f = self.__request(req, no_cookies=True, addition_header={'origin': 'https://ani.gamer.com.tw'})
             url_prefix = re.sub(r'playlist.+', '', self._playlist['src'])  # m3u8 URL 前缀
             m3u8_list = re.findall(r'=\d+x\d+\n.+', f.content.decode())  # 将包含分辨率和 m3u8 文件提取
             m3u8_dict = {}

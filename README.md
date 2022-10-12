@@ -1,4 +1,4 @@
-<h1 align="center">:warning: [**使用 Cookie 解析存在帳號被封鎖風險，不可解封，請三思后使用！**](https://github.com/miyouzi/aniGamerPlus/issues/207) :warning:</h1>
+<h1 align="center">:warning: 使用 Cookie 解析存在帳號被封鎖風險，不可解封，請三思后使用！(https://github.com/miyouzi/aniGamerPlus/issues/207) :warning:</h1>
 <h2 align="center">aniGamerPlus (Ryan Addition)</h2>
 
 <p align="center">

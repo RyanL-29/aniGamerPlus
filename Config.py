@@ -102,6 +102,7 @@ def __init_settings():
                 'video_filename_extension': 'mp4',  # 视频扩展名/封装格式
                 'zerofill': 1,  # 剧集名补零, 此项填补足位数, 小于等于 1 即不补零
                 # cookie的自动刷新对 UA 有检查
+                'cf_clearance': "",
                 'ua': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.96 Safari/537.36",
                 'use_proxy': False,
                 'proxy': 'http://user:passwd@example.com:1000',  # 代理功能, config_version v13.0 删除链式代理
@@ -374,6 +375,9 @@ def __update_settings(old_settings):  # 升级配置文件
 
     if 'only_use_vip' not in new_settings.keys():
         new_settings['only_use_vip'] = False
+
+    if 'cf_clearance' not in new_settings.keys():
+        new_settings['cf_clearance'] = ""
 
     new_settings['config_version'] = latest_config_version
     with open(config_path, 'w', encoding='utf-8') as f:

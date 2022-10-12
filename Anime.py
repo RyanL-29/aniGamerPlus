@@ -263,7 +263,7 @@ class Anime:
                 if self._cookies and not no_cookies:
                     f = self._session.get(req, headers=current_header, cookies=self._cookies, timeout=10)
                 else:
-                    f = self._session.get(req, headers=current_header, cookies={}, timeout=10)
+                    f = self._session.get(req, headers=current_header, cookies=self._settings['cf_clearance'], timeout=10)
             except requests.exceptions.RequestException as e:
                 if error_cnt >= max_retry >= 0:
                     raise TryTooManyTimeError('任務狀態: sn=' + str(self._sn) + ' 请求失败次数过多！请求链接：\n%s' % req)

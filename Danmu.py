@@ -3,8 +3,9 @@ import requests
 import json
 import random
 import re
-import os
 import sys
+import os
+import Config
 from ColorPrint import err_print
 
 class Danmu():
@@ -75,7 +76,7 @@ class Danmu():
         else:
             working_dir = os.path.dirname(os.path.realpath(__file__))
 
-        danmu_template_file = os.path.join(working_dir, 'DanmuTemplate.ass')
+        danmu_template_file = os.path.join(Config.get_working_dir(), 'DanmuTemplate.ass')
         with open(danmu_template_file, 'r', encoding='utf8') as temp:
             for line in temp.readlines():
                 output.write(line)

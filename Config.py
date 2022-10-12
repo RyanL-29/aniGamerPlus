@@ -21,7 +21,7 @@ config_path = os.path.join(working_dir, 'config.json')
 sn_list_path = os.path.join(working_dir, 'sn_list.txt')
 cookie_path = os.path.join(working_dir, 'cookie.txt')
 logs_dir = os.path.join(working_dir, 'logs')
-aniGamerPlus_version = 'aniGamerPlus_v23.7_ryan_fork_windows_64bit'
+aniGamerPlus_version = 'aniGamerPlus_v23.9_ryan_fork_windows_64bit'
 latest_config_version = 16.2
 latest_database_version = 2.0
 cookie = None
@@ -228,6 +228,9 @@ def __update_settings(old_settings):  # 升级配置文件
 
     if 'classify_season' not in new_settings.keys():
         new_settings['classify_season'] = False  # 新增是否建立番剧季度子目錄
+
+    if 'plex_naming' not in new_settings.keys():
+        new_settings['plex_naming'] = False
 
     if 'use_copyfile_method' not in new_settings.keys():
         # v6.0 新增视频转移方法开关, 配置 True 以适配 rclone 挂载盘

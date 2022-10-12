@@ -1,4 +1,5 @@
-<h1 align="center">aniGamerPlus (Ryan Addition)</h1>
+<h1 align="center">:warning: [**使用 Cookie 解析存在帳號被封鎖風險，不可解封，請三思后使用！**](https://github.com/miyouzi/aniGamerPlus/issues/207) :warning:</h1>
+<h2 align="center">aniGamerPlus (Ryan Addition)</h2>
 
 <p align="center">
  <img alt="GitHub" src="https://img.shields.io/github/license/RyanL-29/aniGamerPlus.svg?style=flat-square">
@@ -20,8 +21,6 @@
 **本專案依賴ffmpeg, 請事先將ffmpeg放入系統PATH或者本程序目錄下!**
 
 ffmpeg 需要另外下載, [**點擊這裡前往下載頁**](https://ffmpeg.org/download.html). 若不知道如何將 ffmpeg 放入 PATH 則直接將 **ffmpeg.exe** 放在和本程式同一個資料夾下即可.
-
-:warning: [**使用 Cookie 解析存在帳號被封鎖風險，不可解封，請三思后使用！**](https://github.com/miyouzi/aniGamerPlus/issues/207) :warning:
 
 ## EXE 檔案運行(對於不熟悉Python的使用者)
 
@@ -222,6 +221,7 @@ docker run -td --name anigamerplus \
     "quantity_of_logs": 7,  // 日志保留數量, 正整數值, 必須大於等於 1, 默認為 7
     "config_version": 14.0,  // 配置文件版本
     "database_version": 2.0  // 資料庫版本
+    "cf_clearance": ""
 }
 ```
 

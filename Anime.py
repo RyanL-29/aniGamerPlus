@@ -606,10 +606,10 @@ class Anime:
         anime_meta = self._src.find_all('meta')
 
         if not self._settings['use_mobile_api']:
-            raw_anime_desciption = self._src.find('div', 'data_intro').p.string or ""
-            anime_desciption = re.sub(r'\s+', ' ', raw_anime_desciption)  # 去除重复空格
+            raw_anime_description = self._src.find('div', 'data_intro').p.string or ""
+            anime_description = re.sub(r'\s+', ' ', raw_anime_description)  # 去除重复空格
         else:
-            anime_desciption = ""
+            anime_description = ""
 
         for m in anime_meta:
               if m.get('name') == 'thumbnail':
@@ -746,7 +746,7 @@ class Anime:
             # 将檔案名寫入 metadata
             variable = 'album=' + self._bangumi_name
             variable2 = 'title=' + self._bangumi_name
-            variable3 = 'description=' + anime_desciption
+            variable3 = 'description=' + anime_description
             ffmpeg_cmd[7:7] = iter(['-metadata', variable])
             ffmpeg_cmd[7:7] = iter(['-metadata', variable2])
             ffmpeg_cmd[7:7] = iter(['-metadata', variable3])
@@ -788,14 +788,63 @@ class Anime:
         output_file = os.path.join(self._bangumi_dir, filename)  # 完整输出路径
         downloading_file = os.path.join(self._temp_dir, downloading_filename)
 
-        # 构造 ffmpeg 命令
-        ffmpeg_cmd = [self._ffmpeg_path,
-                      '-user_agent',
-                      self._settings['ua'],
-                      '-headers', "Origin: https://ani.gamer.com.tw",
-                      '-i', self._m3u8_dict[resolution],
-                      '-c', 'copy', downloading_file,
-                      '-y']
+        anime_meta = self._src.find_all('meta')
+
+        if not self._settings['use_mobile_api']:
+            raw_anime_description = self._src.find('div', 'data_intro').p.string or ""
+            anime_description = re.sub(r'\s+', ' ', raw_anime_description)  # 去除重复空格
+        else:
+            anime_description = ""
+        
+        for m in anime_meta:
+              if m.get('name') == 'thumbnail':
+                anime_cover_link = m.get('content')
+        
+        urllib.request.urlretrieve(anime_cover_link, os.path.join(self._temp_dir, 'cover.jpg'))
+
+        if self._settings['video_filename_extension'] == "mp4":
+             # 构造 ffmpeg 命令
+            ffmpeg_cmd = [self._ffmpeg_path,
+                    '-user_agent',
+                    self._settings['ua'],
+                    '-headers', "Origin: https://ani.gamer.com.tw",
+                    '-i', self._m3u8_dict[resolution],
+                    '-i', os.path.join(self._temp_dir, 'cover.jpg'),
+                    '-map', '1',
+                    '-map', '0',
+                    '-c', 'copy', 
+                    '-disposition:v:0', 'attached_pic',
+                    downloading_file,
+                    '-y']
+        else:
+            # 构造 ffmpeg 命令
+            ffmpeg_cmd = [self._ffmpeg_path,
+                    '-user_agent',
+                    self._settings['ua'],
+                    '-headers', "Origin: https://ani.gamer.com.tw",
+                    '-i', self._m3u8_dict[resolution],
+                    '-c', 'copy', downloading_file,
+                    '-y']
+        
+        if self._settings['faststart_movflags']:
+            # 将 metadata 移至视频文件头部
+            # 此功能可以更快的在线播放视频
+            ffmpeg_cmd[7:7] = iter(['-movflags', 'faststart'])
+
+        if self._settings['add_bangumi_name_to_video_meta']:
+            # 将檔案名寫入 metadata
+            variable = 'album=' + self._bangumi_name
+            variable2 = 'title=' + self._bangumi_name
+            variable3 = 'description=' + anime_description
+            ffmpeg_cmd[7:7] = iter(['-metadata', variable])
+            ffmpeg_cmd[7:7] = iter(['-metadata', variable2])
+            ffmpeg_cmd[7:7] = iter(['-metadata', variable3])
+        if self._settings['audio_language']:
+            if self._title.find('中文') == -1:
+                ffmpeg_cmd[7:7] = iter(['-metadata:s:a:0', 'language=jpn'])
+            else:
+                ffmpeg_cmd[7:7] = iter(['-metadata:s:a:0', 'language=chi'])
+
 
         if os.path.exists(downloading_file):
             os.remove(downloading_file)  # 清理任务失败的尸体

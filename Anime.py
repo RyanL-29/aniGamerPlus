@@ -263,7 +263,11 @@ class Anime:
                 if self._cookies and not no_cookies:
                     f = self._session.get(req, headers=current_header, cookies=self._cookies, timeout=10)
                 else:
-                    f = self._session.get(req, headers=current_header, cookies={'cf_clearance': self._settings['cf_clearance']}, timeout=10)
+                    base_cookie = {}
+                    if self.settings['cf_clearance']:
+                        base_cookie = {'cf_clearance': self._settings['cf_clearance']}
+                        
+                    f = self._session.get(req, headers=current_header, cookies=base_cookie, timeout=10)
             except requests.exceptions.RequestException as e:
                 if error_cnt >= max_retry >= 0:
                     raise TryTooManyTimeError('任務狀態: sn=' + str(self._sn) + ' 请求失败次数过多！请求链接：\n%s' % req)
@@ -603,17 +607,20 @@ class Anime:
         if not os.path.exists(temp_dir):  # 创建临时目录
             os.makedirs(temp_dir)
 
-        anime_meta = self._src.find_all('meta')
+
+        anime_description = ""
+        anime_cover_link = ""
 
         if not self._settings['use_mobile_api']:
+            anime_meta = self._src.find_all('meta')
             raw_anime_description = self._src.find('div', 'data_intro').p.string or ""
             anime_description = re.sub(r'\s+', ' ', raw_anime_description)  # 去除重复空格
-        else:
-            anime_description = ""
-
-        for m in anime_meta:
+            for m in anime_meta:
               if m.get('name') == 'thumbnail':
                 anime_cover_link = m.get('content')
+        else:
+            anime_description = self._src['data']['anime']['content']
+            anime_cover_link = self._src['data']['anime']['cover']
 
         urllib.request.urlretrieve(anime_cover_link, os.path.join(temp_dir, 'cover.jpg'))
 

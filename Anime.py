@@ -264,7 +264,7 @@ class Anime:
                     f = self._session.get(req, headers=current_header, cookies=self._cookies, timeout=10)
                 else:
                     base_cookie = {}
-                    if self.settings['cf_clearance']:
+                    if len(self._settings['cf_clearance']) > 0:
                         base_cookie = {'cf_clearance': self._settings['cf_clearance']}
                         
                     f = self._session.get(req, headers=current_header, cookies=base_cookie, timeout=10)

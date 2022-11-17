@@ -83,6 +83,8 @@ def __init_settings():
                 'classify_bangumi': True,  # 控制是否建立番剧目录
                 'classify_season': False,  # 控制是否建立季度子目录
                 'check_frequency': 5,  # 检查 cd 时间, 单位分钟
+                'download_cd': 60,  # 下載冷卻時間(秒)
+                'parse_sn_cd': 5,  # sn 页面(即播放界面)解析冷却时间
                 'download_resolution': '1080',  # 下载分辨率
                 'lock_resolution': False,  # 锁定分辨率, 如果分辨率不存在, 则宣布下载失败
                 'only_use_vip': False,  # 锁定 VIP 账号下载
@@ -106,6 +108,7 @@ def __init_settings():
                 'ua': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.96 Safari/537.36",
                 'use_proxy': False,
                 'proxy': 'http://user:passwd@example.com:1000',  # 代理功能, config_version v13.0 删除链式代理
+                "no_proxy_akamai": False,  # 不代理 akamai CDN
                 'upload_to_server': False,
                 'ftp': {  # 将文件上传至远程服务器
                     'server': '',
@@ -147,7 +150,7 @@ def __init_settings():
                 'read_sn_list_when_checking_update': True,
                 'read_config_when_checking_update': True,
                 'ads_time': 25,
-                'mobile_ads_time': 3,
+                'mobile_ads_time': 25,
                 'use_dashboard': True,
                 'dashboard': {
                     'host': '127.0.0.1',
@@ -343,7 +346,7 @@ def __update_settings(old_settings):  # 升级配置文件
         new_settings['use_mobile_api'] = False
 
     if 'mobile_ads_time' not in new_settings.keys():
-        new_settings['mobile_ads_time'] = 3  # 使用APP API非会员广告等待时间可低至 3s
+        new_settings['mobile_ads_time'] = 25  # 使用APP API非会员广告等待时间可低至 3s
 
     if 'message_suffix' not in new_settings['coolq_settings'].keys():
         # v21.1 新增
@@ -378,6 +381,17 @@ def __update_settings(old_settings):  # 升级配置文件
 
     if 'cf_clearance' not in new_settings.keys():
         new_settings['cf_clearance'] = ""
+    if 'no_proxy_akamai' not in new_settings.keys():
+        # v24.3 添加是否代理 akamai CDN （视频流）
+        new_settings['no_proxy_akamai'] = False
+
+    if 'download_cd' not in new_settings.keys():
+        # v24.4 下載冷卻時間(秒)
+        new_settings['download_cd'] = 60
+
+    if 'parse_sn_cd' not in new_settings.keys():
+        # v24.4 sn解析冷卻時間(秒)
+        new_settings['parse_sn_cd'] = 5
 
     new_settings['config_version'] = latest_config_version
     with open(config_path, 'w', encoding='utf-8') as f:
@@ -682,6 +696,9 @@ def read_cookie(log=False):
         os.rename(error_cookie_path, cookie_path)
     # 用户可以将cookie保存在程序所在目录下，保存为 cookies.txt ，UTF-8 编码
     if os.path.exists(cookie_path):
+        # 防止 Cookie 文件为空报错
+        if os.path.getsize(cookie_path) == 0:
+            return None
         # del_bom(cookie_path)  # 移除 bom
         check_encoding(cookie_path)  # 移除 bom
         if log:
@@ -822,6 +839,33 @@ def get_local_ip():
     except:
         local_ip.close()
     return local_ip
+
+
+def parse_proxy(proxy_str: str) -> dict:
+    if len(proxy_str) == 0 or proxy_str.isspace():
+        return {}
+
+    result = {}
+
+    if re.match(r'.*@.*', proxy_str):
+        proxy_user = re.sub(r':(\/\/)?', '', re.findall(r':\/\/.*?:', proxy_str)[0])
+        proxy_passwd = re.sub(r'(:\/\/:)?@?', '', re.sub(proxy_user, '', re.findall(r':.*@', proxy_str)[0]))
+        result['proxy_user'] = proxy_user
+        result['proxy_passwd'] = proxy_passwd
+        proxy_str = proxy_str.replace(proxy_user + ':' + proxy_passwd + '@', '')
+    else:
+        result['proxy_user'] = None
+        result['proxy_passwd'] = None
+
+    proxy_protocol = re.sub(r':\/\/.*', '', proxy_str).upper()
+    proxy_ip = re.sub(r':(\/\/)?', '', re.findall(r':.*:', proxy_str)[0])
+    proxy_port = re.sub(r':', '', re.findall(r':\d+', proxy_str)[0])
+
+    result['proxy_protocol'] = proxy_protocol
+    result['proxy_ip'] = proxy_ip
+    result['proxy_port'] = proxy_port
+
+    return result
 
 
 if __name__ == '__main__':

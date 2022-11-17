@@ -69,6 +69,7 @@ class Danmu():
                 ban_words.append(online_ban_word['keyword'])
 
         output = open(self._full_filename, 'w', encoding='utf8')
+
         # https://github.com/RyanL-29/aniGamerPlus/issues/16
         # 你猜猜看我是 .exe 或是 .py 檔案
         if getattr(sys, 'frozen', False):
@@ -76,7 +77,8 @@ class Danmu():
         else:
             working_dir = os.path.dirname(os.path.realpath(__file__))
 
-        danmu_template_file = os.path.join(Config.get_working_dir(), 'DanmuTemplate.ass')
+        danmu_template_file = os.path.join(working_dir, 'DanmuTemplate.ass')
+
         with open(danmu_template_file, 'r', encoding='utf8') as temp:
             for line in temp.readlines():
                 output.write(line)

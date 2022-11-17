@@ -9,6 +9,7 @@
 from gevent import monkey
 monkey.patch_all()
 
+
 import os, sys, time, re, random, traceback, argparse
 import signal
 import sqlite3
@@ -16,6 +17,7 @@ import threading
 import subprocess
 import platform
 import socket
+import requests
 
 import Config
 from Anime import Anime, TryTooManyTimeError
@@ -62,6 +64,39 @@ def build_anime(sn):
         err_print(sn, '抓取失敗', '抓取影片信息時發生未知錯誤: '+str(e), status=1)
         err_print(sn, '抓取異常', '異常詳情:\n'+traceback.format_exc(), status=1, display=False)
     return anime
+
+
+def read_db_all():
+    db_locker.acquire()
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("select * FROM anime")
+
+    try:
+        values = cursor.fetchall()
+    except IndexError as e:
+        cursor.close()
+        conn.close()
+        db_locker.release()
+        raise e
+
+    anime_db = [0] * len(values)
+    for i in range(len(values)):
+        anime_db[i] = {'sn': values[i][0],
+                    'title': values[i][1],
+                    'anime_name': values[i][2],
+                    'episode': values[i][3],
+                    'status': values[i][4],
+                    'remote_status': values[i][5],
+                    'resolution': values[i][6],
+                    'file_size': values[i][7],
+                    'local_file_path': values[i][8]}
+
+    cursor.close()
+    conn.close()
+    db_locker.release()
+    return anime_db
 
 
 def read_db(sn):
@@ -245,7 +280,8 @@ def worker(sn, sn_info, realtime_show_file_size=False):
         sys.exit(1)
 
     update_db(anime)  # 下载完成后, 更新数据库
-    thread_limiter.release()  # 并发下载限制器
+    download_cd = threading.Thread(target=download_cd_counter)
+    download_cd.start()
     # =====下载模块结束 =====
 
     # =====上传模块=====
@@ -264,9 +300,20 @@ def worker(sn, sn_info, realtime_show_file_size=False):
         upload_limiter.release()  # 并发上传限制器
     # =====上传模块结束=====
 
+    download_cd.join()
     queue.pop(sn)  # 从任务列队中移除
-    processing_queue.remove(sn)  # 从当前任务列队中移除
+    processing_queue.remove(sn)  # 从当前任务列队中移除 
     err_print(sn, '任務完成', status=2)
+    
+
+def download_cd_counter():
+    seconds = settings['download_cd']
+    while(seconds > 0):
+        err_print('', '下載冷卻:', '下載冷卻時間剩餘 ' + str(seconds) + ' 秒', status=0, no_sn=True)
+        wait_time = min(30, seconds)
+        time.sleep(wait_time)
+        seconds -= wait_time
+    thread_limiter.release()  # 并发下载限制器
 
 
 def check_tasks():
@@ -274,6 +321,10 @@ def check_tasks():
         anime = build_anime(sn)
         if anime['failed']:
             err_print(sn, '更新狀態', '檢查更新失敗, 跳過等待下次檢查', status=1)
+            # sn 解析冷却
+            if settings['parse_sn_cd'] > 0:
+                err_print("更新資訊", "SN 解析冷卻 " + str(settings['parse_sn_cd']) + " 秒", no_sn=True)
+                time.sleep(settings['parse_sn_cd'])
             continue
         anime = anime['anime']
         err_print(sn, '更新資訊', '正在檢查《' + anime.get_bangumi_name() + '》')
@@ -327,6 +378,11 @@ def check_tasks():
                 insert_db(new_anime)
                 queue[latest_sn] = sn_dict[sn]
 
+        # sn 解析冷却
+        if settings['parse_sn_cd'] > 0:
+            err_print("更新資訊", "SN 解析冷卻 " + str(settings['parse_sn_cd']) + " 秒", no_sn=True)
+            time.sleep(settings['parse_sn_cd'])
+
 
 def __download_only(sn, dl_resolution='', dl_save_dir='', realtime_show_file_size=False, classify=True):
     # 仅下载,不操作数据库
@@ -373,7 +429,8 @@ def __download_only(sn, dl_resolution='', dl_save_dir='', realtime_show_file_siz
                 err_print(sn, '下載異常', '異常詳情:\n'+traceback.format_exc(), status=1, display=False)
                 anime.video_size = 0
 
-    thread_limiter.release()
+    download_cd = threading.Thread(target=download_cd_counter)
+    download_cd.start()
 
 
 def __get_info_only(sn):
@@ -390,9 +447,28 @@ def __get_info_only(sn):
         download_dir = os.path.join(download_dir, Config.legalize_filename(anime.get_bangumi_name()))
 
     if danmu:
-        full_filename = os.path.join(download_dir, anime.get_filename()).replace('.' + settings['video_filename_extension'], '.ass')
-        d = Danmu(sn, full_filename, Config.read_cookie())
+        if os.path.exists(download_dir):
+            full_filename = os.path.join(download_dir, anime.get_filename()).replace('.' + settings['video_filename_extension'], '.ass')
+            d = Danmu(sn, full_filename, Config.read_cookie())
+            d.download(settings['danmu_ban_words'])
+        else:
+            err_print(sn, '彈幕下載異常', '番劇資料夾不存在: ' + download_dir, status=1)
+
+    thread_limiter.release()
+
+
+def __get_danmu_only(sn, bangumi_name, video_path):
+    thread_limiter.acquire()
+
+    download_dir = settings['bangumi_dir']
+    if classify:  # 控制是否建立番剧文件夹
+        download_dir = os.path.join(download_dir, Config.legalize_filename(bangumi_name))
+
+    if os.path.exists(download_dir):
+        d = Danmu(sn, video_path.replace('.' + settings['video_filename_extension'], '.ass'), Config.read_cookie())
         d.download(settings['danmu_ban_words'])
+    else:
+        err_print(sn, '彈幕下載異常', '番劇資料夾不存在: ' + download_dir, status=1)
 
     thread_limiter.release()
 
@@ -470,7 +546,7 @@ def __cui(sn, cui_resolution, cui_download_mode, cui_thread_limit, ep_range,
                 task = threading.Thread(target=__get_info_only, args=(anime_sn,))
             else:
                 task = threading.Thread(target=__download_only, args=(anime_sn, cui_resolution, cui_save_dir, realtime_show_file_size, classify))
-            task.setDaemon(True)
+            task.daemon = True
             thread_tasks.append(task)
             task.start()
             tasks_counter = tasks_counter + 1
@@ -500,7 +576,7 @@ def __cui(sn, cui_resolution, cui_download_mode, cui_thread_limit, ep_range,
                     a = threading.Thread(target=__get_info_only, args=(episode_dict[ep],))
                 else:
                     a = threading.Thread(target=__download_only, args=(episode_dict[ep], cui_resolution, cui_save_dir, realtime_show_file_size))
-                a.setDaemon(True)
+                a.daemon = True
                 thread_tasks.append(a)
                 a.start()
                 tasks_counter = tasks_counter + 1
@@ -535,7 +611,7 @@ def __cui(sn, cui_resolution, cui_download_mode, cui_thread_limit, ep_range,
                     a = threading.Thread(target=__get_info_only, args=(sn,))
                 else:
                     a = threading.Thread(target=__download_only, args=(sn, cui_resolution, cui_save_dir, realtime_show_file_size))
-                a.setDaemon(True)
+                a.daemon = True
                 thread_tasks.append(a)
                 a.start()
                 tasks_counter = tasks_counter + 1
@@ -557,7 +633,7 @@ def __cui(sn, cui_resolution, cui_download_mode, cui_thread_limit, ep_range,
                 a = threading.Thread(target=__get_info_only, args=(sn,))
             else:
                 a = threading.Thread(target=__download_only,args=(sn, cui_resolution, cui_save_dir, realtime_show_file_size))
-            a.setDaemon(True)
+            a.daemon = True
             thread_tasks.append(a)
             a.start()
             tasks_counter = tasks_counter + 1
@@ -587,13 +663,29 @@ def __cui(sn, cui_resolution, cui_download_mode, cui_thread_limit, ep_range,
             for sn in queue.keys():  # 遍历任务列队
                 processing_queue.append(sn)
                 task = threading.Thread(target=worker, args=(sn, queue[sn], realtime_show_file_size))
-                task.setDaemon(True)
+                task.daemon = True
                 thread_tasks.append(task)
                 task.start()
                 err_print(sn, '加入任务列隊')
             msg = '共 ' + str(len(queue)) + ' 個任務'
             err_print(0, '任務資訊', msg, no_sn=True)
             print()
+
+    elif cui_download_mode == 'danmu':
+        tasks_counter = 0
+        for anime_db in ep_range:
+            if anime_db["status"] == 1:
+                if not anime_db["anime_name"] is None \
+                and not anime_db["local_file_path"] is None :
+                    a = threading.Thread(target=__get_danmu_only,args=(anime_db["sn"], anime_db["anime_name"], anime_db["local_file_path"]))
+                    a.setDaemon(True)
+                    thread_tasks.append(a)
+                    a.start()
+                    tasks_counter = tasks_counter + 1
+                else:
+                    err_print(anime_db["sn"], '彈幕更新失敗', "資料庫不存在番劇名稱或影片路徑", status=1)
+
+        print('所有任務已添加至列隊, 共 ' + str(tasks_counter) + ' 個任務, ' + '執行緒數: ' + str(cui_thread_limit) + '\n')
 
     __kill_thread_when_ctrl_c()
     kill_gost()  # 结束 gost
@@ -663,12 +755,65 @@ def __init_proxy():
             gost_subprocess.communicate()
 
         run_gost_threader = threading.Thread(target=run_gost)
-        run_gost_threader.setDaemon(True)
+        run_gost_threader.daemon = True
         run_gost_threader.start()  # 启动 gost
         time.sleep(3)  # 给时间让 gost 启动
 
     else:
         print('使用代理連接動畫瘋, 使用http/https/socks5協議')
+
+
+def do_request(url, headers, cookies, params=None):
+    return requests.get(url, headers=headers, cookies=cookies, params=params)
+
+
+def parse_anime(soup, animes, headers, cookies):
+    if soup.text.find("目前沒有訂閱內容") != -1:
+        return False
+    for animeInfo in soup.select_one(".theme-list-block").select("a"):
+        response = do_request(f"https://ani.gamer.com.tw/{animeInfo['href']}", headers, cookies)
+        sn = response.url.split("=")[-1]
+        name = animeInfo.select_one(".theme-name").text
+        animes.append({"sn": sn, "name": name})
+    return True
+
+
+def export_my_anime():
+    from bs4 import BeautifulSoup
+
+    url = "https://ani.gamer.com.tw/mygather.php"
+    header = {
+        'accept':
+        'application/json',
+        'origin':
+        'https://ani.gamer.com.tw',
+        'authority':
+        'ani.gamer.com.tw',
+        'user-agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36',
+    }
+
+    cookies = Config.read_cookie()
+    if not cookies:
+        err_print(0, f"請先設定cookie後再執行此指令", status=1, no_sn=True)
+        return
+
+    page = 1
+    animes = []
+    while True:
+        params = {'page': page, 'sort': 0}
+        bahamygatherPage = do_request(url, headers=header, cookies=cookies, params=params)
+        if bahamygatherPage.status_code == requests.codes.ok:
+            soup = BeautifulSoup(bahamygatherPage.text, 'html.parser')
+            if not parse_anime(soup, animes, header, cookies):
+                break
+        else:
+            err_print(0, f"匯入我的動畫失敗，狀態碼{bahamygatherPage.status_code}", status=1, no_sn=True)
+        page += 1
+
+    with open("my_anime.txt", "w", encoding="utf-8") as f:
+        for anime in animes:
+            f.write(f"{anime['sn']} all <{anime['name']}>\n")
 
 
 def run_dashboard():
@@ -679,7 +824,7 @@ def run_dashboard():
 
     from Dashboard.Server import run as dashboard
     server = threading.Thread(target=dashboard)
-    server.setDaemon(True)
+    server.daemon = True
     server.start()
     if settings['dashboard']['SSL']:
         dashboard_address = 'https://'
@@ -740,7 +885,7 @@ if __name__ == '__main__':
         parser.add_argument('--sn', '-s', type=int, help='視頻sn碼(數字)')
         parser.add_argument('--resolution', '-r', type=int, help='指定下載清晰度(數字)', choices=[360, 480, 540, 576, 720, 1080])
         parser.add_argument('--download_mode', '-m', type=str, help='下載模式', default='single',
-                            choices=['single', 'latest', 'largest-sn', 'multi', 'all', 'range', 'list', 'sn-list', 'sn-range'])
+                            choices=['single', 'latest', 'largest-sn', 'multi', 'all', 'range', 'list', 'sn-list', 'sn-range', 'db'])
         parser.add_argument('--thread_limit', '-t', type=int, help='最高并發下載數(數字)')
         parser.add_argument('--current_path', '-c', action='store_true', help='下載到當前工作目錄')
         parser.add_argument('--episodes', '-e', type=str, help='僅下載指定劇集')
@@ -748,9 +893,14 @@ if __name__ == '__main__':
         parser.add_argument('--user_command', '-u', action='store_true', help='所有下載完成后執行用戶命令')
         parser.add_argument('--information_only', '-i', action='store_true', help='僅查詢資訊，可搭配 -d 更新彈幕')
         parser.add_argument('--danmu', '-d', action='store_true', help='以 .ass 下載彈幕')
+        parser.add_argument('--my_anime', action='store_true', help='匯出「我的動畫」至my_anime.txt')
         arg = parser.parse_args()
 
-        if (arg.download_mode not in ('list', 'multi', 'sn-list')) and arg.sn is None:
+        if arg.my_anime:
+            export_my_anime()
+            sys.exit(0)
+
+        if (arg.download_mode not in ('list', 'multi', 'sn-list', 'db')) and arg.sn is None:
             err_print(0, '參數錯誤', '非 list/multi 模式需要提供 sn ', no_sn=True, status=1)
             sys.exit(1)
 
@@ -819,6 +969,10 @@ if __name__ == '__main__':
                 resolution = str(arg.resolution)
                 print('指定下载解析度: ' + resolution + 'P')
 
+        if arg.download_mode == "db":
+            download_mode = "danmu"
+            download_episodes = read_db_all()
+
         if arg.information_only:
             # 为避免排版混乱, 仅显示信息时强制为单线程
             thread_limit = 1
@@ -873,7 +1027,7 @@ if __name__ == '__main__':
             for task_sn in queue.keys():
                 if task_sn not in processing_queue:  # 如果该任务没有在进行中，则启动
                     task = threading.Thread(target=worker, args=(task_sn, queue[task_sn]))
-                    task.setDaemon(True)
+                    task.daemon = True
                     task.start()
                     processing_queue.append(task_sn)
                     new_tasks_counter = new_tasks_counter + 1

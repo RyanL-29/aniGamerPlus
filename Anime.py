@@ -6,7 +6,9 @@
 import ftplib
 import urllib.request
 import shutil
+import traceback
 import Config
+import pyhttpx
 from Danmu import Danmu
 from bs4 import BeautifulSoup
 import re, time, os, platform, subprocess, requests, random, sys
@@ -31,6 +33,10 @@ class Anime:
         self._gost_port = str(gost_port)
 
         self._session = requests.session()
+        if 'firefox' in self._settings['ua'].lower():
+            self._pyhttpx_session = pyhttpx.HttpSession(browser_type='firefox')
+        else:
+            self._pyhttpx_session = pyhttpx.HttpSession(browser_type='chrome')
         self._title = ''
         self._sn = sn
         self._bangumi_name = ''
@@ -48,6 +54,8 @@ class Anime:
         self.realtime_show_file_size = False
         self.upload_succeed_flag = False
         self._danmu = False
+        self._proxies = {}
+        self._proxy_auth = ()
 
         self.season_title_filter = re.compile('第[零一二三四五六七八九十]{1,3}季$')
         self.extra_title_filter = re.compile('\[(特別篇|中文配音)\]$')
@@ -75,11 +83,22 @@ class Anime:
             # 需要使用 gost 的情况, 代理到 gost
             os.environ['HTTP_PROXY'] = 'http://127.0.0.1:' + self._gost_port
             os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:' + self._gost_port
+            self._proxies = {'https': '127.0.0.1:' + self._gost_port,
+                             'http': '127.0.0.1:' + self._gost_port}
         else:
             # 无需 gost 的情况
             os.environ['HTTP_PROXY'] = self._settings['proxy']
             os.environ['HTTPS_PROXY'] = self._settings['proxy']
-        os.environ['NO_PROXY'] = "127.0.0.1,localhost"
+            proxy_info = Config.parse_proxy(self._settings['proxy'])
+            proxy_without_protocol = proxy_info['proxy_ip'] + ':' + proxy_info['proxy_port']
+            self._proxies = {'https': proxy_without_protocol,
+                             'http': proxy_without_protocol}
+            self._proxy_auth = (proxy_info['proxy_user'], proxy_info['proxy_passwd'])
+
+        if self._settings['no_proxy_akamai']:
+            os.environ['NO_PROXY'] = "127.0.0.1,localhost,bahamut.akamaized.net"
+        else:
+            os.environ['NO_PROXY'] = "127.0.0.1,localhost"
 
     def renew(self):
         self.__get_src()
@@ -117,10 +136,10 @@ class Anime:
 
     def __get_src(self):
         if self._settings['use_mobile_api']:
-            self._src = self.__request(f'https://api.gamer.com.tw/mobile_app/anime/v2/video.php?sn={self._sn}', no_cookies=True).json()
+            self._src = self.__request_json(f'https://api.gamer.com.tw/mobile_app/anime/v2/video.php?sn={self._sn}', no_cookies=True)
         else:
             req = f'https://ani.gamer.com.tw/animeVideo.php?sn={self._sn}'
-            f = self.__request(req, no_cookies=True)
+            f = self.__request(req, no_cookies=True, use_pyhttpx=True)
             self._src = BeautifulSoup(f.content, "lxml")
 
     def __get_title(self):
@@ -233,20 +252,20 @@ class Anime:
             "Connection": "Keep-Alive"
         }
         self._web_header = {
-                "user-agent": ua,
+                "User-Agent": ua,
                 "referer": ref,
-                "accept-language": lang,
-                "accept": accept,
-                "accept-encoding": accept_encoding,
-                "cache-control": cache_control,
-                "origin": origin
+                "Accept-Language": lang,
+                "Accept": accept,
+                "Accept-Encoding": accept_encoding,
+                "Cache-Control": cache_control,
+                "Origin": origin
             }
         if self._settings['use_mobile_api']:
             self._req_header = self._mobile_header
         else:
             self._req_header = self._web_header
 
-    def __request(self, req, no_cookies=False, show_fail=True, max_retry=3, addition_header=None):
+    def __request(self, req, no_cookies=False, show_fail=True, max_retry=3, addition_header=None, use_pyhttpx = False):
         # 设置 header
         current_header = self._req_header
         if addition_header is None:
@@ -257,12 +276,17 @@ class Anime:
 
         # 获取页面
         error_cnt = 0
+        if self._cookies and not no_cookies:
+            cookies = self._cookies
+        else:
+            cookies = {}
         while True:
             try:
-                if self._cookies and not no_cookies:
-                    f = self._session.get(req, headers=current_header, cookies=self._cookies, timeout=10)
+                if use_pyhttpx:
+                    f = self._pyhttpx_session.get(req, headers=current_header, cookies=cookies, timeout=10,
+                                                  proxies=self._proxies, proxy_auth=self._proxy_auth)
                 else:
-                    f = self._session.get(req, headers=current_header, cookies={}, timeout=10)
+                    f = self._session.get(req, headers=current_header, cookies=cookies, timeout=10)
             except requests.exceptions.RequestException as e:
                 if error_cnt >= max_retry >= 0:
                     raise TryTooManyTimeError('任務狀態: sn=' + str(self._sn) + ' 请求失败次数过多！请求链接：\n%s' % req)
@@ -277,20 +301,21 @@ class Anime:
         # 处理 cookie
         if not self._cookies:
             # 当实例中尚无 cookie, 则读取
-            self._cookies = f.cookies.get_dict()
+            self._cookies = self._session.cookies
         elif 'nologinuser' not in self._cookies.keys() and 'BAHAID' not in self._cookies.keys():
             # 处理游客cookie
-            if 'nologinuser' in f.cookies.get_dict().keys():
-                # self._cookies['nologinuser'] = f.cookies.get_dict()['nologinuser']
-                self._cookies = f.cookies.get_dict()
+            if 'nologinuser' in self._session.cookies.keys():
+                # self._cookies['nologinuser'] = self._session.cookies['nologinuser']
+                self._cookies = self._session.cookies
         else:  # 如果用户提供了 cookie, 则处理cookie刷新
             if 'set-cookie' in f.headers.keys():  # 发现server响应了set-cookie
                 if 'deleted' in f.headers.get('set-cookie'):
                     # set-cookie刷新cookie只有一次机会, 如果其他线程先收到, 则此处会返回 deleted
                     # 等待其他线程刷新了cookie, 重新读入cookie
 
-                    if self._settings['use_mobile_api'] and 'X-Bahamut-App-InstanceId' in self._req_header:
+                    if self._settings['use_mobile_api'] and 'X-Bahamut-App-Android' in self._req_header:
                         # 使用移动API将无法进行 cookie 刷新, 改回 header 刷新 cookie
+                        err_print(self._sn, '嘗試切換回 Web Header 刷新 Cookie', display=False)
                         self._req_header = self._web_header
                         self.__request('https://ani.gamer.com.tw/')  # 再次尝试获取新 cookie
                     else:
@@ -319,7 +344,7 @@ class Anime:
                             err_print(0, '用戶cookie更新失敗! 使用游客身份訪問', status=1, no_sn=True)
                             Config.invalid_cookie()  # 将失效cookie更名
 
-                        if self._settings['use_mobile_api'] and 'X-Bahamut-App-InstanceId' not in self._req_header:
+                        if self._settings['use_mobile_api'] and 'X-Bahamut-App-Android' not in self._req_header:
                             # 即使切换 header cookie 也无法刷新, 那么恢复 header, 好歹广告只有 3s
                             self._req_header = self._mobile_header
 
@@ -328,25 +353,34 @@ class Anime:
                     # 20220115 简化 cookie 刷新逻辑
                     err_print(self._sn, '收到新cookie', display=False)
 
-                    self._cookies.update(f.cookies.get_dict())
+                    self._cookies.update(self._session.cookies)
                     Config.renew_cookies(self._cookies, log=False)
 
-                    key_list_str = ', '.join(f.cookies.get_dict().keys())
+                    key_list_str = ', '.join(self._session.cookies.keys())
                     err_print(self._sn, f'用戶cookie刷新 {key_list_str} ', display=False)
 
                     self.__request('https://ani.gamer.com.tw/')
                     # 20210724 动画疯一步到位刷新 Cookie
                     if 'BAHARUNE' in f.headers.get('set-cookie'):
                         err_print(0, '用戶cookie已更新', status=2, no_sn=True)
+                        if self._settings['use_mobile_api']:
+                            # 当使用 APP API 临时切换至 Web API 更新 Cookie 时，Cookie 更新成功再切换回 App Header
+                            self._req_header = self._mobile_header
+                            err_print(self._sn, '切換回 App Header 進行影片解析', display=False)
 
         return f
+
+    def __request_json(self, req, no_cookies=False, show_fail=True, max_retry=3, addition_header=None, use_pyhttpx = False):
+        if use_pyhttpx:
+            return self.__request(req, no_cookies, show_fail, max_retry, addition_header, use_pyhttpx).json
+        else:
+            return self.__request(req, no_cookies, show_fail, max_retry, addition_header, use_pyhttpx).json()
 
     def __get_m3u8_dict(self):
         # m3u8获取模块参考自 https://github.com/c0re100/BahamutAnimeDownloader
         def get_device_id():
             req = 'https://ani.gamer.com.tw/ajax/getdeviceid.php'
-            f = self.__request(req)
-            self._device_id = f.json()['deviceid']
+            self._device_id = self.__request_json(req)['deviceid']
             return self._device_id
 
         def get_playlist():
@@ -354,8 +388,7 @@ class Anime:
                 req = f'https://api.gamer.com.tw/mobile_app/anime/v2/m3u8.php?sn={str(self._sn)}&device={self._device_id}'
             else:
                 req = 'https://ani.gamer.com.tw/ajax/m3u8.php?sn=' + str(self._sn) + '&device=' + self._device_id
-            f = self.__request(req)
-            self._playlist = f.json()
+            self._playlist = self.__request_json(req)
 
         def random_string(num):
             chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
@@ -372,7 +405,7 @@ class Anime:
                 req = 'https://ani.gamer.com.tw/ajax/token.php?adID=0&sn=' + str(
                     self._sn) + "&device=" + self._device_id + "&hash=" + random_string(12)
             # 返回基础信息, 用于判断是不是VIP
-            return self.__request(req).json()
+            return self.__request_json(req)
 
         def unlock():
             req = 'https://ani.gamer.com.tw/ajax/unlock.php?sn=' + str(self._sn) + "&ttl=0"
@@ -407,8 +440,7 @@ class Anime:
 
             req = "https://ani.gamer.com.tw/ajax/token.php?sn=" + str(
                 self._sn) + "&device=" + self._device_id + "&hash=" + random_string(12)
-            f = self.__request(req)
-            resp = f.json()
+            resp = self.__request_json(req)
             if 'time' in resp.keys():
                 if not resp['time'] == 1:
                     err_print(self._sn, '廣告似乎還沒去除, 追加等待2秒, 剩餘重試次數 ' + str(error_count), status=1)
@@ -680,7 +712,7 @@ class Anime:
             chunk_uri = url_path + '/' + chunk
             task = threading.Thread(target=download_chunk, args=(chunk_uri,))
             chunk_tasks_list.append(task)
-            task.setDaemon(True)
+            task.daemon = True
             limiter.acquire()
             task.start()
 
@@ -837,7 +869,7 @@ class Anime:
                 time_counter = time_counter + 1
 
         ffmpeg_checker = threading.Thread(target=check_ffmpeg_alive)  # 检查线程
-        ffmpeg_checker.setDaemon(True)  # 如果 Anime 线程被 kill, 检查进程也应该结束
+        ffmpeg_checker.daemon = True  # 如果 Anime 线程被 kill, 检查进程也应该结束
         ffmpeg_checker.start()
         run = run_ffmpeg.communicate()
         return_str = str(run[1])
@@ -952,13 +984,13 @@ class Anime:
             try:
                 os.makedirs(self._bangumi_dir)  # 按番剧创建文件夹分类
             except FileExistsError as e:
-                err_print(self._sn, '下載狀態', '慾創建的番劇資料夾已存在 ' + str(e), display=False)
+                err_print(self._sn, '下載狀態', '欲創建的番劇資料夾已存在 ' + str(e), display=False)
 
         if not os.path.exists(self._temp_dir):  # 建立临时文件夹
             try:
                 os.makedirs(self._temp_dir)
             except FileExistsError as e:
-                err_print(self._sn, '下載狀態', '慾創建的臨時資料夾已存在 ' + str(e), display=False)
+                err_print(self._sn, '下載狀態', '欲創建的臨時資料夾已存在 ' + str(e), display=False)
 
         # 如果不存在指定清晰度，则选取最近可用清晰度
         if resolution not in self._m3u8_dict.keys():
@@ -998,9 +1030,13 @@ class Anime:
 
         # 下載彈幕
         if self._danmu:
-            full_filename = os.path.join(self._bangumi_dir, self.__get_filename(resolution)).replace('.' + self._settings['video_filename_extension'], '.ass')
-            d = Danmu(self._sn, full_filename, Config.read_cookie())
-            d.download(self._settings['danmu_ban_words'])
+            try:
+                full_filename = os.path.join(self._bangumi_dir, self.__get_filename(resolution)).replace('.' + self._settings['video_filename_extension'], '.ass')
+                d = Danmu(self._sn, full_filename, Config.read_cookie())
+                d.download(self._settings['danmu_ban_words'])
+            except BaseException as e:
+                err_print(self._sn, '彈幕異常', '下載彈幕時發生未知錯誤: '+str(e), status=1)
+                err_print(self._sn, '彈幕異常', '異常詳情:\n'+traceback.format_exc(), status=1, display=False)
 
         # 推送 CQ 通知
         if self._settings['coolq_notify']:
@@ -1031,7 +1067,7 @@ class Anime:
                     else:
                         apiMethod = "getUpdates"
                         api_url = "https://api.telegram.org/bot" + vApiTokenTelegram + "/" + apiMethod # Telegram bot api url
-                        response = self.__request(api_url).json()
+                        response = self.__request_json(api_url)
                         chat_id = response["result"][0]["message"]["chat"]["id"] # Get chat id
                     try:
                         api_method = "sendMessage"
@@ -1366,4 +1402,6 @@ class Anime:
 
 
 if __name__ == '__main__':
-    pass
+    a = Anime('31724')
+    print(a.get_m3u8_dict())
+    a.download('360')

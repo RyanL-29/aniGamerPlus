@@ -221,7 +221,6 @@ docker run -td --name anigamerplus \
     "quantity_of_logs": 7,  // 日志保留數量, 正整數值, 必須大於等於 1, 默認為 7
     "config_version": 14.0,  // 配置文件版本
     "database_version": 2.0  // 資料庫版本
-    "cf_clearance": ""
 }
 ```
 

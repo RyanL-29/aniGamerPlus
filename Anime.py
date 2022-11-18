@@ -285,12 +285,8 @@ class Anime:
                 if use_pyhttpx:
                     f = self._pyhttpx_session.get(req, headers=current_header, cookies=cookies, timeout=10,
                                                   proxies=self._proxies, proxy_auth=self._proxy_auth)
-                else:
-                    base_cookie = {}
-                    if len(self._settings['cf_clearance']) > 0:
-                        base_cookie = {'cf_clearance': self._settings['cf_clearance']}
-                        
-                    f = self._session.get(req, headers=current_header, cookies=base_cookie, timeout=10)
+                else:   
+                    f = self._session.get(req, headers=current_header, cookies=cookies, timeout=10)
             except requests.exceptions.RequestException as e:
                 if error_cnt >= max_retry >= 0:
                     raise TryTooManyTimeError('任務狀態: sn=' + str(self._sn) + ' 请求失败次数过多！请求链接：\n%s' % req)

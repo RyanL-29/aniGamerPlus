@@ -7,8 +7,8 @@
  <img alt="GitHub Release Date" src="https://img.shields.io/github/release-date/RyanL-29/aniGamerPlus.svg?style=flat-square">
  <img alt="GitHub Releases" src="https://img.shields.io/github/downloads/RyanL-29/aniGamerPlus/latest/total.svg?style=flat-square"></br>
  <p align="center">
- <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/RyanL-29/aniGamerPlus/aniGamerPlus%20Build%20Release?label=Release%20Build&style=flat-square">
- <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/RyanL-29/aniGamerPlus/aniGamerPlus%20Build%20Artifact?label=Artifact%20Build&style=flat-square">
+ <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/RyanL-29/aniGamerPlus/Release-build?label=Release%20Build&style=flat-square">
+ <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/RyanL-29/aniGamerPlus/Python-build?label=Artifact%20Build&style=flat-square">
  </p>
 </p>
 

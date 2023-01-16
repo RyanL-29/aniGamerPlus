@@ -11,7 +11,7 @@ import Config
 import pyhttpx
 from Danmu import Danmu
 from bs4 import BeautifulSoup
-import re, time, os, platform, subprocess, requests, random, sys
+import re, time, os, platform, subprocess, requests, random, sys, ssl
 from ColorPrint import err_print
 from ftplib import FTP, FTP_TLS
 import socket
@@ -644,6 +644,7 @@ class Anime:
             anime_description = self._src['data']['anime']['content']
             anime_cover_link = self._src['data']['anime']['cover']
 
+        ssl._create_default_https_context = ssl._create_unverified_context
         urllib.request.urlretrieve(anime_cover_link, os.path.join(temp_dir, 'cover.jpg'))
 
         m3u8_path = os.path.join(temp_dir, str(self._sn) + '.m3u8')  # m3u8 存放位置
@@ -828,8 +829,8 @@ class Anime:
         for m in anime_meta:
               if m.get('name') == 'thumbnail':
                 anime_cover_link = m.get('content')
-        
-        urllib.request.urlretrieve(anime_cover_link, os.path.join(self._temp_dir, 'cover.jpg'))
+        ssl._create_default_https_context = ssl._create_unverified_context
+        urllib.request.urlretrieve(anime_cover_link, os.path.join(self._temp_dir, 'cover.jpg'), )
 
         if self._settings['video_filename_extension'] == "mp4":
              # 构造 ffmpeg 命令

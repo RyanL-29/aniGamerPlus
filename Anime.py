@@ -635,11 +635,11 @@ class Anime:
 
         if not self._settings['use_mobile_api']:
             anime_meta = self._src.find_all('meta')
-            raw_anime_description = self._src.find('div', {"class": "data_intro"}).p.string or ""
-            if raw_anime_description:
-                raw_anime_description = raw_anime_description.p.string
-            else:
+            raw_anime_description = self._src.find('div', {"class": "data_intro"})
+            if raw_anime_description is None:
                 raw_anime_description = ""
+            else:
+                raw_anime_description = raw_anime_description.p.string
             anime_description = re.sub(r'\s+', ' ', raw_anime_description)  # 去除重复空格
             for m in anime_meta:
               if m.get('name') == 'thumbnail':

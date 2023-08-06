@@ -1018,7 +1018,7 @@ if __name__ == '__main__':
     if settings['use_dashboard']:
         run_dashboard()
 
-    while True:
+    def auto_update():
         print()
         err_print(0, '開始更新', no_sn=True)
         Config.test_cookie()  # 测试cookie
@@ -1042,5 +1042,11 @@ if __name__ == '__main__':
         err_print(0, '更新資訊', info, no_sn=True)
         err_print(0, '更新终了', no_sn=True)
         print()
+    
+    # Fixing the delay on next update
+    while True:
+        update_task = threading.Thread(target=auto_update)
+        update_task.daemon = True
+        update_task.start()
         for i in range(settings['check_frequency'] * 60):
             time.sleep(1)  # cool down, 這麽寫是爲了可以 Ctrl+C 馬上退出

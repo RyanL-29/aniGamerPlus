@@ -846,6 +846,37 @@ def run_dashboard():
     dashboard_address = dashboard_address + host + ':' + str(settings['dashboard']['port'])
     err_print(0, 'Web控制面板已啓動', dashboard_address, no_sn=True, status=2)
 
+def auto_update():
+    global settings
+    global sn_dict
+    global danmu
+    global processing_queue
+    global queue
+    
+    print()
+    err_print(0, '開始更新', no_sn=True)
+    Config.test_cookie()  # 测试cookie
+    if settings['read_sn_list_when_checking_update']:
+        sn_dict = Config.read_sn_list()
+    if settings['read_config_when_checking_update']:
+        settings = Config.read_settings()
+    danmu = settings['danmu'] # 避免手動加入工作時，global 覆寫掉 config 的 danmu 設定
+    check_tasks()  # 检查更新，生成任务列队
+    new_tasks_counter = 0  # 新增任务计数器
+    if queue:
+        for task_sn in queue.keys():
+            if task_sn not in processing_queue:  # 如果该任务没有在进行中，则启动
+                task = threading.Thread(target=worker, args=(task_sn, queue[task_sn]))
+                task.daemon = True
+                task.start()
+                processing_queue.append(task_sn)
+                new_tasks_counter = new_tasks_counter + 1
+                err_print(task_sn, '加入任务列隊')
+    info = '本次更新添加了 '+str(new_tasks_counter)+' 個新任務, 目前列隊中共有 ' + str(len(processing_queue)) + ' 個任務'
+    err_print(0, '更新資訊', info, no_sn=True)
+    err_print(0, '更新终了', no_sn=True)
+    print()
+
 
 signal.signal(signal.SIGINT, user_exit)
 signal.signal(signal.SIGTERM, user_exit)
@@ -1017,31 +1048,6 @@ if __name__ == '__main__':
 
     if settings['use_dashboard']:
         run_dashboard()
-
-    def auto_update():
-        print()
-        err_print(0, '開始更新', no_sn=True)
-        Config.test_cookie()  # 测试cookie
-        if settings['read_sn_list_when_checking_update']:
-            sn_dict = Config.read_sn_list()
-        if settings['read_config_when_checking_update']:
-            settings = Config.read_settings()
-        danmu = settings['danmu'] # 避免手動加入工作時，global 覆寫掉 config 的 danmu 設定
-        check_tasks()  # 检查更新，生成任务列队
-        new_tasks_counter = 0  # 新增任务计数器
-        if queue:
-            for task_sn in queue.keys():
-                if task_sn not in processing_queue:  # 如果该任务没有在进行中，则启动
-                    task = threading.Thread(target=worker, args=(task_sn, queue[task_sn]))
-                    task.daemon = True
-                    task.start()
-                    processing_queue.append(task_sn)
-                    new_tasks_counter = new_tasks_counter + 1
-                    err_print(task_sn, '加入任务列隊')
-        info = '本次更新添加了 '+str(new_tasks_counter)+' 個新任務, 目前列隊中共有 ' + str(len(processing_queue)) + ' 個任務'
-        err_print(0, '更新資訊', info, no_sn=True)
-        err_print(0, '更新终了', no_sn=True)
-        print()
     
     # Fixing the delay on next update
     while True:

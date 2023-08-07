@@ -1054,5 +1054,6 @@ if __name__ == '__main__':
         update_task = threading.Thread(target=auto_update)
         update_task.daemon = True
         update_task.start()
-        for i in range(settings['check_frequency'] * 60):
-            time.sleep(1)  # cool down, 這麽寫是爲了可以 Ctrl+C 馬上退出
+        time.sleep(settings['check_frequency'] * 60)
+        # for i in range(settings['check_frequency'] * 60):
+        #     time.sleep(1)  # cool down, 這麽寫是爲了可以 Ctrl+C 馬上退出

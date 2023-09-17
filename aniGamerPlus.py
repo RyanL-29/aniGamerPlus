@@ -1054,7 +1054,7 @@ if __name__ == '__main__':
     
     # Fixing the delay on next update
     while True:
-        if lastUpdateTime == None or lastUpdateTime >= settings['check_frequency'] * 60 * 1000:
+        if lastUpdateTime == None or round(time.time() * 1000) - lastUpdateTime >= settings['check_frequency'] * 60 * 1000:
             update_task = threading.Thread(target=auto_update)
             update_task.setDaemon(True)
             update_task.start()

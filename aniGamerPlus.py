@@ -896,7 +896,7 @@ danmu = settings['danmu']
 
 if __name__ == '__main__':
 
-    lastUpdateTime = None
+    scheduleUpdateTime = None
 
     if settings['check_latest_version']:
         check_new_version()  # 检查新版
@@ -1054,10 +1054,14 @@ if __name__ == '__main__':
     
     # Fixing the delay on next update
     while True:
-        if lastUpdateTime == None or round(time.time() * 1000) - lastUpdateTime >= settings['check_frequency'] * 60 * 1000:
+        if scheduleUpdateTime == None or round(time.time() * 1000) - scheduleUpdateTime >= settings['check_frequency'] * 60 * 1000:
+            if scheduleUpdateTime == None:
+                scheduleUpdateTime = round(time.time() * 1000)
+            else:
+                scheduleUpdateTime = scheduleUpdateTime + settings['check_frequency'] * 60 * 1000
+                
             update_task = threading.Thread(target=auto_update)
             update_task.setDaemon(True)
             update_task.start()
-            lastUpdateTime = round(time.time() * 1000)
         else:
             time.sleep(1)

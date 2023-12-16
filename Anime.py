@@ -692,7 +692,7 @@ class Anime:
                                            show_fail=False,
                                            max_retry=self._settings['segment_max_retry']).content)
                     chunk_size = os.path.getsize(chunk_local_path)
-                    err_print(self._sn, '下載狀態', 'Segment Downloaded=' + chunk_name + ' Size=' + chunk_size, status=0, display=False)
+                    err_print(self._sn, '下載狀態', 'Segment Downloaded=' + chunk_name + ' Size=' + str(chunk_size), status=0, display=False)
                     if chunk_size < 1:
                         raise ChunkSizeInvalid('任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri)
             except TryTooManyTimeError:

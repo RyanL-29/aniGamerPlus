@@ -22,6 +22,9 @@ from urllib.parse import quote
 class TryTooManyTimeError(BaseException):
     pass
 
+class ChunkSizeInvalid(BaseException):
+    pass
+
 
 class Anime:
     def __init__(self, sn, debug_mode=False, gost_port=34173):
@@ -688,7 +691,15 @@ class Anime:
                     f.write(self.__request(uri, no_cookies=True,
                                            show_fail=False,
                                            max_retry=self._settings['segment_max_retry']).content)
+                    chunk_size = os.path.getsize(chunk_local_path)
+                    if chunk_size < 1:
+                        raise ChunkSizeInvalid('任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri)
             except TryTooManyTimeError:
+                failed_flag = True
+                err_print(self._sn, '下載狀態', 'Bad segment=' + chunk_name, status=1)
+                limiter.release()
+                sys.exit(1)
+            except ChunkSizeInvalid:
                 failed_flag = True
                 err_print(self._sn, '下載狀態', 'Bad segment=' + chunk_name, status=1)
                 limiter.release()

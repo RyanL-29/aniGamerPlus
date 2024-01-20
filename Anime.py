@@ -681,7 +681,7 @@ class Anime:
         finished_chunk_counter = 0
         failed_flag = False
 
-        def download_chunk(uri):
+        def download_chunk(uri, index):
             chunk_name = re.findall(r'media_b.+ts', uri)[0]  # chunk 文件名
             chunk_local_path = os.path.join(temp_dir, chunk_name)  # chunk 路径
             nonlocal failed_flag
@@ -693,7 +693,7 @@ class Anime:
                                            max_retry=self._settings['segment_max_retry']).content)
                     chunk_size = os.path.getsize(chunk_local_path)
                     err_print(self._sn, '下載狀態', 'Segment Downloaded=' + chunk_name + ' Size=' + str(chunk_size), status=0, display=False)
-                    if chunk_size < 1:
+                    if chunk_size < 1 and index != len(chunk_list) - 1:
                         raise ChunkSizeInvalid('任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri)
             except TryTooManyTimeError:
                 failed_flag = True
@@ -731,9 +731,9 @@ class Anime:
             err_print(self._sn, '正在下載', filename + ' title=' + self._title)
 
         chunk_tasks_list = []
-        for chunk in chunk_list:
+        for index, chunk in enumerate(chunk_list):
             chunk_uri = url_path + '/' + chunk
-            task = threading.Thread(target=download_chunk, args=(chunk_uri,))
+            task = threading.Thread(target=download_chunk, args=(chunk_uri, index,))
             chunk_tasks_list.append(task)
             task.daemon = True
             limiter.acquire()

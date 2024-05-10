@@ -680,7 +680,7 @@ class Anime:
         total_chunk_num = len(chunk_list)
         finished_chunk_counter = 0
         failed_flag = False
-        invalid_chunk = 0
+
 
         def download_chunk(uri, index):
             chunk_name = re.findall(r'media_b.+ts', uri)[0]  # chunk 文件名
@@ -694,11 +694,10 @@ class Anime:
                                            max_retry=self._settings['segment_max_retry'])
                     f.write(req.content)
                     chunk_size = os.path.getsize(chunk_local_path)
-                    err_print(self._sn, '下載狀態', f"content-length: {req.headers.get('Content-Length')}, chunk_size: {chunk_size}, valid: {int(chunk_size) == int(req.headers.get('Content-Length'))}", status=0, display=False)
                     err_print(self._sn, '下載狀態', 'Segment Downloaded=' + chunk_name + ' Size=' + str(chunk_size), status=0, display=False)
-                    if chunk_size < 1 and index != len(chunk_list) - 1:
-                        err_print('任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri)
-                        invalid_chunk = invalid_chunk + 1
+                    if int(chunk_size) != int(req.headers.get('Content-Length')):
+                        err_print(self._sn, '下載狀態', '任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri, status=0, display=False)
+                        raise ChunkSizeInvalid('任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri)
             except TryTooManyTimeError:
                 failed_flag = True
                 err_print(self._sn, '下載狀態', 'Bad segment=' + chunk_name, status=1)
@@ -746,7 +745,7 @@ class Anime:
          
         for task in chunk_tasks_list:  # 等待所有任务完成
             while True:
-                if failed_flag or invalid_chunk >= 2:
+                if failed_flag:
                     err_print(self._sn, '下載失败', filename, status=1)
                     self.video_size = 0
                     return

@@ -694,7 +694,7 @@ class Anime:
                                            max_retry=self._settings['segment_max_retry'])
                     f.write(req.content)
                     chunk_size = os.path.getsize(chunk_local_path)
-                    err_print(f"content-length: {req.headers.get('Content-Length')}, chunk_size: {chunk_size}, valid: {int(chunk_size) == int(req.headers.get('Content-Length'))}", display=False)
+                    err_print(self._sn, f"content-length: {req.headers.get('Content-Length')}, chunk_size: {chunk_size}, valid: {int(chunk_size) == int(req.headers.get('Content-Length'))}", status=0, display=False)
                     err_print(self._sn, '下載狀態', 'Segment Downloaded=' + chunk_name + ' Size=' + str(chunk_size), status=0, display=False)
                     if chunk_size < 1 and index != len(chunk_list) - 1:
                         err_print('任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri)

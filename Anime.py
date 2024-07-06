@@ -694,8 +694,9 @@ class Anime:
                                            max_retry=self._settings['segment_max_retry'])
                     f.write(req.content)
                     chunk_size = os.path.getsize(chunk_local_path)
-                    err_print(self._sn, '下載狀態', 'Segment Downloaded=' + chunk_name + ' Size=' + str(chunk_size) + ' ExpectedSize=' + str(req.headers.get('Content-Length')), status=0, display=False)
-                    if int(chunk_size) != int(req.headers.get('Content-Length')) and index != (len(chunk_list) - 1):
+                    expected_length = req.headers.get('Content-Length')
+                    err_print(self._sn, '下載狀態', 'Segment Downloaded=' + chunk_name + ' Size=' + str(chunk_size) + ' ExpectedSize=' + str(expected_length), status=0, display=False)
+                    if int(expected_length) >= 1048576 and int(chunk_size) != int(expected_length):
                         err_print(self._sn, '下載狀態', '任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri, status=0, display=False)
                         raise ChunkSizeInvalid('任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri)
             except TryTooManyTimeError:

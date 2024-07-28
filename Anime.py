@@ -415,29 +415,29 @@ class Anime:
 
         def unlock():
             req = 'https://ani.gamer.com.tw/ajax/unlock.php?sn=' + str(self._sn) + "&ttl=0"
-            f = self.__request(req)  # 无响应正文
+            self.__request(req)  # 无响应正文
 
         def check_lock():
             req = 'https://ani.gamer.com.tw/ajax/checklock.php?device=' + self._device_id + '&sn=' + str(self._sn)
-            f = self.__request(req)
+            self.__request(req)
 
         def start_ad():
             if self._settings['use_mobile_api']:
                 req = f"https://api.gamer.com.tw/mobile_app/anime/v1/stat_ad.php?schedule=-1&sn={str(self._sn)}"
             else:
                 req = "https://ani.gamer.com.tw/ajax/videoCastcishu.php?sn=" + str(self._sn) + "&s=194699"
-            f = self.__request(req)  # 无响应正文
+            self.__request(req)  # 无响应正文
 
         def skip_ad():
             if self._settings['use_mobile_api']:
                 req = f"https://api.gamer.com.tw/mobile_app/anime/v1/stat_ad.php?schedule=-1&ad=end&sn={str(self._sn)}"
             else:
                 req = "https://ani.gamer.com.tw/ajax/videoCastcishu.php?sn=" + str(self._sn) + "&s=194699&ad=end"
-            f = self.__request(req)  # 无响应正文
+            self.__request(req)  # 无响应正文
 
         def video_start():
             req = "https://ani.gamer.com.tw/ajax/videoStart.php?sn=" + str(self._sn)
-            f = self.__request(req)
+            self.__request(req)
 
         def check_no_ad(error_count=10):
             if error_count == 0:
@@ -681,24 +681,39 @@ class Anime:
         finished_chunk_counter = 0
         failed_flag = False
 
+        def handle_download_chunk(uri, chunk_name):
+            chunk_local_path = os.path.join(temp_dir, chunk_name)  # chunk 路径
+            with open(chunk_local_path, 'wb') as f:
+                req = self.__request(uri, no_cookies=True,
+                                        show_fail=False,
+                                        max_retry=self._settings['segment_max_retry'])
+                f.write(req.content)
+                chunk_size = os.path.getsize(chunk_local_path)
+                expected_length = req.headers.get('Content-Length')
+                err_print(self._sn, '下載狀態', 'Segment Downloaded=' + chunk_name + ' Size=' + str(chunk_size) + ' ExpectedSize=' + str(expected_length), status=0, display=False)
+                if int(chunk_size) != int(expected_length):
+                    err_print(self._sn, '下載狀態', '任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri, status=0, display=False)
+                    return False
+                else:
+                    return True
 
         def download_chunk(uri, index):
+            retryCount = 0
             chunk_name = re.findall(r'media_b.+ts', uri)[0]  # chunk 文件名
-            chunk_local_path = os.path.join(temp_dir, chunk_name)  # chunk 路径
             nonlocal failed_flag
 
             try:
-                with open(chunk_local_path, 'wb') as f:
-                    req = self.__request(uri, no_cookies=True,
-                                           show_fail=False,
-                                           max_retry=self._settings['segment_max_retry'])
-                    f.write(req.content)
-                    chunk_size = os.path.getsize(chunk_local_path)
-                    expected_length = req.headers.get('Content-Length')
-                    err_print(self._sn, '下載狀態', 'Segment Downloaded=' + chunk_name + ' Size=' + str(chunk_size) + ' ExpectedSize=' + str(expected_length), status=0, display=False)
-                    if int(expected_length) >= 100000 and int(chunk_size) != int(expected_length):
-                        err_print(self._sn, '下載狀態', '任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri, status=0, display=False)
-                        raise ChunkSizeInvalid('任務狀態: sn=' + str(self._sn) + ' 請求所獲取的檔案不完整！請求鏈接：\n%s' % uri)
+                while True:
+                    download_result = handle_download_chunk(uri, chunk_name)
+                    if download_result:
+                        break
+                        
+                    if retryCount > self._settings['segment_max_retry']:
+                        err_print(self._sn, '下載狀態', f'Bad segment={chunk_name} with retry count {retryCount}', status=1)
+                        break
+                    
+                    retryCount+=1
+                        
             except TryTooManyTimeError:
                 failed_flag = True
                 err_print(self._sn, '下載狀態', 'Bad segment=' + chunk_name, status=1)
@@ -1157,9 +1172,9 @@ class Anime:
                                 + "&text=" \
                                 + str(msg)
                         self.__request(req, no_cookies=True) # Send msg to telegram bot
-                    except:
+                    except Exception:
                         err_print(self._sn, 'TG NOTIFY ERROR', "Exception: Send msg error\nReq: " + req, status=1) # Send mag error
-                except:
+                except Exception:
                     err_print(self._sn, 'TG NOTIFY ERROR', "Exception: Invalid access token\nToken: " + vApiTokenTelegram, status=1) # Cannot find chat id
             except BaseException as e:
                 err_print(self._sn, 'TG NOTIFY ERROR', 'Exception: ' + str(e), status=1)
@@ -1178,7 +1193,7 @@ class Anime:
                         'name': '🔔 動畫瘋'
                     }}]}
             r = requests.post(url, json=data)
-            if ("wait" in url and r.status_code != 200) or (not "wait" in url and r.status_code != 204):
+            if ("wait" in url and r.status_code != 200) or ("wait" not in url and r.status_code != 204):
                 err_print(self._sn, 'discord NOTIFY ERROR', "Exception: Send msg error\nReq: " + r.text, status=1)
 
         # plex 自動更新媒體庫
@@ -1192,7 +1207,7 @@ class Anime:
                 r = requests.get(url)
                 if r.status_code != 200:
                     err_print(self._sn, 'Plex auto Refresh ERROR', status=1)
-            except:
+            except Exception as e:
                 err_print(self._sn, 'Plex auto Refresh UNKNOWN ERROR', 'Exception: ' + str(e), status=1)
 
     def upload(self, bangumi_tag='', debug_file=''):

@@ -21,7 +21,7 @@ config_path = os.path.join(working_dir, 'config.json')
 sn_list_path = os.path.join(working_dir, 'sn_list.txt')
 cookie_path = os.path.join(working_dir, 'cookie.txt')
 logs_dir = os.path.join(working_dir, 'logs')
-aniGamerPlus_version = 'aniGamerPlus_v24.8_ryan_fork_windows_64bit'
+aniGamerPlus_version = 'aniGamerPlus_v24.9_ryan_fork_windows_64bit'
 latest_config_version = 16.3
 latest_database_version = 2.0
 cookie = None
@@ -785,7 +785,7 @@ def read_latest_version_on_github():
         remote_version['tag_name'] = latest_releases_info['tag_name']
         remote_version['body'] = latest_releases_info['body']  # 更新内容
         __color_print(0, '檢查更新', '檢查更新成功', no_sn=True, display=False)
-    except:
+    except Exception:
         remote_version['tag_name'] = aniGamerPlus_version  # 拉取github版本号失败
         remote_version['body'] = ''
         __color_print(0, '檢查更新', '檢查更新失敗', no_sn=True, display=False)
@@ -833,7 +833,7 @@ def get_local_ip():
     try:
         s.connect(('8.8.8.8', 80))
         local_ip = s.getsockname()[0]
-    except:
+    except Exception:
         local_ip.close()
     return local_ip
 

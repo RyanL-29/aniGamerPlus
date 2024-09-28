@@ -5,7 +5,6 @@ import random
 import re
 import sys
 import os
-import Config
 from ColorPrint import err_print
 
 class Danmu():

@@ -16,7 +16,7 @@ jobs:
       # You can use PyPy versions in python-version.
       # For example, pypy2 and pypy3
       matrix:
-        python: [3.12.x, 3.13.x]
+        python: [3.10.x, 3.12.x]
     
     steps:
     - uses: actions/checkout@v2

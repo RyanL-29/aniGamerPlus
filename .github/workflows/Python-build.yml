@@ -30,14 +30,14 @@ jobs:
         pip install -r requirements.txt
         pip install nuitka
     - name: Build exe
-      run: nuitka --onefile --standalone --assume-yes-for-downloads --windows-console-mode=force --windows-icon-from-ico=%cd%\Dashboard\static\img\aniGamerPlus.ico --output-dir=dist %cd%\aniGamerPlus.py
+      run: nuitka --onefile --standalone --assume-yes-for-downloads --windows-console-mode=force --windows-icon-from-ico=%cd%\Dashboard\static\img\aniGamerPlus.ico %cd%\aniGamerPlus.py
       shell: cmd
     - name: Upload exe
       uses: actions/upload-artifact@v4
       with:
        name: aniGamerPlus_artifacts_py_V${{ matrix.python }}
        path: |
-         dist/aniGamerPlus.exe
+         aniGamerPlus.exe
          Dashboard/
          LICENSE
          README.md

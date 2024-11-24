@@ -48,7 +48,7 @@ jobs:
         pip install -r requirements.txt
         pip install nuitka
     - name: Build exe
-      run: nuitka --onefile --windows-console-mode=force --windows-icon-from-ico=%cd%\Dashboard\static\img\aniGamerPlus.ico --output-dir=dist %cd%\aniGamerPlus.py
+      run: nuitka --onefile --standalone --assume-yes-for-downloads --windows-console-mode=force --windows-icon-from-ico=%cd%\Dashboard\static\img\aniGamerPlus.ico --output-dir=dist %cd%\aniGamerPlus.py
       shell: cmd
 
     - name: Archive release

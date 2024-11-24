@@ -1,1 +1,2 @@
-pyinstaller --noconfirm --onefile --console --icon %~dp0aniGamerPlus_0000.ico --clean --add-data %~dp0;aniGamerPlus/  %~dp0aniGamerPlus.py
+@REM pyinstaller --noconfirm --onefile --console --icon %~dp0aniGamerPlus_0000.ico --clean --add-data %~dp0;aniGamerPlus/  %~dp0aniGamerPlus.py
+nuitka --onefile --windows-console-mode=force --windows-icon-from-ico=%~dp0aniGamerPlus_0000.ico --output-dir=dist %~dp0aniGamerPlus.py

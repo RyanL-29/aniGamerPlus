@@ -46,13 +46,13 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pyinstaller
+        pip install nuitka
     - name: Build exe
-      run: pyinstaller --noconfirm --distpath %cd%\ --onefile --console --icon %cd%\Dashboard\static\img\aniGamerPlus.ico --clean --add-data %cd%;aniGamerPlus/  %cd%\aniGamerPlus.py
+      run: nuitka --onfile --windows-console-mode=force --windows-icon-from-ico=%cd%\Dashboard\static\img\aniGamerPlus.ico --output-dir=dist %cd%\aniGamerPlus.py
       shell: cmd
 
     - name: Archive release
-      run: 7z a -tzip ${{ env.RELEASE_FILENAME }} aniGamerPlus.exe Dashboard DanmuTemplate.ass config-sample.json sn_list-sample.txt LICENSE README.md
+      run: 7z a -tzip ${{ env.RELEASE_FILENAME }} dist/aniGamerPlus.exe Dashboard DanmuTemplate.ass config-sample.json sn_list-sample.txt LICENSE README.md
 
     - name: Create Release
       id: create_release

@@ -16,7 +16,7 @@ jobs:
       # You can use PyPy versions in python-version.
       # For example, pypy2 and pypy3
       matrix:
-        python: [3.10.x]
+        python: [3.8.x]
     
     steps:
     - uses: actions/checkout@v2
@@ -30,7 +30,7 @@ jobs:
         pip install -r requirements.txt
         pip install nuitka
     - name: Build exe
-      run: nuitka --onefile --onefile-no-compression --standalone --assume-yes-for-downloads --windows-console-mode=force --windows-icon-from-ico=%cd%\Dashboard\static\img\aniGamerPlus.ico %cd%\aniGamerPlus.py
+      run: pyinstaller --noconfirm --distpath %cd%\ --onefile --console --icon %cd%\Dashboard\static\img\aniGamerPlus.ico --clean  %cd%\aniGamerPlus.py
       shell: cmd
     - name: Upload exe
       uses: actions/upload-artifact@v4

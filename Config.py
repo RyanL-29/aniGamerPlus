@@ -13,17 +13,8 @@ from urllib.parse import urlencode
 
 # 你猜猜看我是 .exe 或是 .py 檔案
 # Add support for nuitka
-is_nuitka_compiled = False
-try:
-    if __nuitka_binary_dir is not None:
-        is_nuitka_compiled = True
-except NameError:
-        is_nuitka_compiled = False
-
-if is_nuitka_compiled:
-    working_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-elif getattr(sys, 'frozen', False):
-    working_dir = os.path.dirname(sys.executable)
+if getattr(sys, 'frozen', False) or "__compiled__" in globals():
+    working_dir = os.path.dirname(sys.argv[0])
 else:
     working_dir = os.path.dirname(os.path.realpath(__file__))
 

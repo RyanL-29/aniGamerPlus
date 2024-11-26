@@ -41,7 +41,7 @@ jobs:
     - name: Upload exe
       uses: actions/upload-artifact@v4
       with:
-       name: aniGamerPlus_artifacts_py_V${{ matrix.python }}
+       name: aniGamerPlus_artifacts_py_V${{ matrix.python }}_${{matrix.builder}}
        path: |
          aniGamerPlus.exe
          Dashboard/

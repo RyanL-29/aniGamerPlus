@@ -32,7 +32,7 @@ jobs:
         pip install ${{ matrix.builder }}
     - name: Build exe - pyinstaller
       if:  ${{ matrix.builder == 'pyinstaller' }}
-      run: pyinstaller --noconfirm --distpath %cd%\ --onefile --console --icon %cd%\Dashboard\static\img\aniGamerPlus.ico --clean  %cd%\aniGamerPlus.py
+      run: pyinstaller --noconfirm --distpath %cd%\ --onefile --console --icon %cd%\Dashboard\static\img\aniGamerPlus.ico --clean %cd%\aniGamerPlus.py
     - name: Build exe - nuitka
       if:  ${{ matrix.builder == 'nuitka' }}
       run: nuitka --onefile --onefile-no-compression --standalone --assume-yes-for-downloads --windows-console-mode=force --windows-icon-from-ico=%cd%\Dashboard\static\img\aniGamerPlus.ico %cd%\aniGamerPlus.py

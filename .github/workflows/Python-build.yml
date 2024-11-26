@@ -17,7 +17,7 @@ jobs:
       # For example, pypy2 and pypy3
       matrix:
         python: [3.9.x, 3.10.x]
-        builder: ["pyinstaller"]
+        builder: ["pyinstaller", "nuitka"]
     
     steps:
     - uses: actions/checkout@v2
@@ -33,6 +33,7 @@ jobs:
     - name: Build exe - pyinstaller
       if:  ${{ matrix.builder == 'pyinstaller' }}
       run: pyinstaller --noconfirm --distpath %cd%\ --onefile --console --icon %cd%\Dashboard\static\img\aniGamerPlus.ico --clean %cd%\aniGamerPlus.py
+      shell: cmd
     - name: Build exe - nuitka
       if:  ${{ matrix.builder == 'nuitka' }}
       run: nuitka --onefile --onefile-no-compression --standalone --assume-yes-for-downloads --windows-console-mode=force --windows-icon-from-ico=%cd%\Dashboard\static\img\aniGamerPlus.ico %cd%\aniGamerPlus.py

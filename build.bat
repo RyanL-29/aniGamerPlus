@@ -1,2 +1,2 @@
 pyinstaller --noconfirm --onefile --console --icon %~dp0aniGamerPlus_0000.ico --clean %~dp0aniGamerPlus.py
-@REM nuitka --onefile --onefile-no-compression --standalone --assume-yes-for-downloads --windows-console-mode=force --windows-icon-from-ico=%~dp0aniGamerPlus_0000.ico --output-dir=dist %~dp0aniGamerPlus.py
+@REM nuitka --onefile --onefile-no-compression --standalone --assume-yes-for-downloads --windows-console-mode=force --windows-icon-from-ico=%~dp0aniGamerPlus_0000.ico --output-dir=dist %~dp0test.py

@@ -17,7 +17,7 @@ jobs:
       # For example, pypy2 and pypy3
       matrix:
         python: [3.9.x, 3.10.x]
-        builder: ["pyinstaller", "nuitka"]
+        builder: ["pyinstaller"]
     
     steps:
     - uses: actions/checkout@v2

@@ -13,7 +13,7 @@ jobs:
       # You can use PyPy versions in python-version.
       # For example, pypy2 and pypy3
       matrix:
-        python: [3.8.x]
+        python: [3.9.x]
 
     steps:
     - uses: actions/checkout@v2
@@ -26,8 +26,8 @@ jobs:
       run: |
         chcp 65001
         echo ("RELEASE_VERSION=" + $env:GITHUB_REF.replace('refs/tags/', '')) >> $env:GITHUB_ENV
-        echo ("RELEASE_TITLE=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_windows_64bit") >> $env:GITHUB_ENV
-        echo ("RELEASE_FILENAME=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_windows_64bit.zip") >> $env:GITHUB_ENV
+        echo ("RELEASE_TITLE=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_ryan_fork_windows_64bit") >> $env:GITHUB_ENV
+        echo ("RELEASE_FILENAME=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_ryan_fork_windows_64bit.zip") >> $env:GITHUB_ENV
         git fetch --tags --force
     - name: Get tag message
       id: tag_data
@@ -48,7 +48,7 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
     - name: Build exe
-      run: pyinstaller --noconfirm --distpath %cd%\ --onefile --console --icon %cd%\Dashboard\static\img\aniGamerPlus.ico --clean --add-data %cd%;aniGamerPlus/  %cd%\aniGamerPlus.py
+      run: pyinstaller --noconfirm --distpath %cd%\ --onefile --console --icon %cd%\Dashboard\static\img\aniGamerPlus.ico --clean %cd%\aniGamerPlus.py
       shell: cmd
 
     - name: Archive release
@@ -60,7 +60,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
       with:
-        tag_name: ${{ env.RELEASE_VERSION }}
+        tag_name: ${{ env.RELEASE_TITLE }}
         release_name: "${{ env.RELEASE_TITLE }}"
         body: ${{ steps.tag_data.outputs.git-tag-annotation }}
         draft: false

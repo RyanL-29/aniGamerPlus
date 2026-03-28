@@ -1,10 +1,15 @@
-<h1 align="center">aniGamerPlus</h1>
+<h1 align="center">:warning: 使用 Cookie 解析存在帳號被封鎖風險，不可解封，請三思后使用！(https://github.com/miyouzi/aniGamerPlus/issues/207) :warning:</h1>
+<h2 align="center">aniGamerPlus (Ryan Addition)</h2>
 
 <p align="center">
- <img alt="GitHub" src="https://img.shields.io/github/license/miyouzi/aniGamerPlus.svg?style=flat-square">
- <img alt="GitHub release" src="https://img.shields.io/github/release/miyouzi/aniGamerPlus.svg?style=flat-square">
- <img alt="GitHub Release Date" src="https://img.shields.io/github/release-date/miyouzi/aniGamerPlus.svg?style=flat-square">
- <img alt="GitHub Releases" src="https://img.shields.io/github/downloads/miyouzi/aniGamerPlus/latest/total.svg?style=flat-square">
+ <img alt="GitHub" src="https://img.shields.io/github/license/RyanL-29/aniGamerPlus.svg?style=flat-square">
+ <img alt="GitHub release" src="https://img.shields.io/github/release/RyanL-29/aniGamerPlus.svg?style=flat-square">
+ <img alt="GitHub Release Date" src="https://img.shields.io/github/release-date/RyanL-29/aniGamerPlus.svg?style=flat-square">
+ <img alt="GitHub Releases" src="https://img.shields.io/github/downloads/RyanL-29/aniGamerPlus/latest/total.svg?style=flat-square"></br>
+ <p align="center">
+ <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/RyanL-29/aniGamerPlus/Release-build.yml?label=Release%20Build&style=flat-square">
+ <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/RyanL-29/aniGamerPlus/Python-build.yml?label=Artifact%20Build&style=flat-square">
+ </p>
 </p>
 
 巴哈姆特動畫瘋自動下載工具, 可隨著番劇更新自動下載, 適合部署在全天開機的伺服器或NAS上.
@@ -17,11 +22,9 @@
 
 ffmpeg 需要另外下載, [**點擊這裡前往下載頁**](https://ffmpeg.org/download.html). 若不知道如何將 ffmpeg 放入 PATH 則直接將 **ffmpeg.exe** 放在和本程式同一個資料夾下即可.
 
-:warning: [**使用 Cookie 解析存在帳號被封鎖風險，不可解封，請三思后使用！**](https://github.com/miyouzi/aniGamerPlus/issues/207) :warning:
-
 ## EXE 檔案運行(對於不熟悉Python的使用者)
 
-windows 使用者可以[**點擊這裡**](https://github.com/miyouzi/aniGamerPlus/releases/latest)下載exe文件使用.
+windows 使用者可以[**點擊這裡**](https://github.com/RyanL-29/aniGamerPlus/releases/latest)下載exe文件使用.
 
 ## 源碼運行
 
@@ -153,8 +156,6 @@ docker run -td --name anigamerplus \
     "classify_bangumi": true,  // 控制是否建立番劇資料夾
     "classify_season": false,  // 控制是否建立季度子目錄
     "check_frequency": 5,  // 檢查更新頻率, 單位為分鐘
-    "download_cd": 5,  // # 下載冷卻時間(秒)
-    "parse_sn_cd": 3,  // sn 页面(即播放界面)解析冷却时间(秒)
     "download_resolution": "1080",  // 下載選取清晰度, 若該清晰度不存在將會選取最近可用清晰度, 可選 360 480 540 576 720 1080
     "lock_resolution": false,  // 鎖定清晰度, 如果指定清晰度不存在, 則放棄下載
     "only_use_vip": false,  // 锁定 VIP 账号下载

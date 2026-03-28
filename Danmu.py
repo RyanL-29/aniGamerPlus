@@ -3,10 +3,9 @@ import requests
 import json
 import random
 import re
+import sys
 import os
-import Config
 from ColorPrint import err_print
-
 
 class Danmu():
     def __init__(self, sn, full_filename, cookies):
@@ -21,6 +20,8 @@ class Danmu():
         return f"{b}{g}{r}"
 
     def find_ban_word(self, text, ban_word_re):
+        # https://github.com/miyouzi/aniGamerPlus/issues/179
+        # 修復跳過彈幕
         result = ban_word_re.search(text)
         # 確認不是匹配到空字串
         return result and result.group(0)
@@ -67,7 +68,16 @@ class Danmu():
                 ban_words.append(online_ban_word['keyword'])
 
         output = open(self._full_filename, 'w', encoding='utf8')
-        danmu_template_file = os.path.join(Config.get_working_dir(), 'DanmuTemplate.ass')
+
+        # https://github.com/RyanL-29/aniGamerPlus/issues/16
+        # 你猜猜看我是 .exe 或是 .py 檔案
+        if getattr(sys, 'frozen', False):
+            working_dir = os.path.dirname(sys.executable)
+        else:
+            working_dir = os.path.dirname(os.path.realpath(__file__))
+
+        danmu_template_file = os.path.join(working_dir, 'DanmuTemplate.ass')
+
         with open(danmu_template_file, 'r', encoding='utf8') as temp:
             for line in temp.readlines():
                 output.write(line)

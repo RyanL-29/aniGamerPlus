@@ -5,11 +5,19 @@
 # @File    : Config.py
 # @Software: PyCharm
 
-import os, json, re, sys, requests, time, random, codecs, chardet
-import sqlite3
+import codecs
+import json
+import os
+import random
+import re
 import socket
-from urllib.parse import quote
-from urllib.parse import urlencode
+import sqlite3
+import sys
+import time
+from typing import Optional
+from urllib.parse import urlencode, quote
+import chardet
+import requests
 
 # 你猜猜看我是 .exe 或是 .py 檔案
 # Add support for nuitka
@@ -23,9 +31,9 @@ sn_list_path = os.path.join(working_dir, 'sn_list.txt')
 cookie_path = os.path.join(working_dir, 'cookie.txt')
 logs_dir = os.path.join(working_dir, 'logs')
 aniGamerPlus_version = 'aniGamerPlus_v24.9_ryan_fork_windows_64bit'
-latest_config_version = 16.3
+latest_config_version = 16.4
 latest_database_version = 2.0
-cookie = None
+cookie: dict[str, str] = None # type: ignore
 max_multi_thread = 5
 max_multi_downloading_segment = 10
 tasks_progress_rate = {}  # 储存任务进度, 供面板使用,
@@ -35,11 +43,8 @@ tasks_progress_rate = {}  # 储存任务进度, 供面板使用,
 
 def __color_print(sn, err_msg, detail='', status=0, no_sn=False, display=True):
     # 避免与 ColorPrint.py 相互调用产生问题
-    try:
-        err_print(sn, err_msg, detail=detail, status=status, no_sn=no_sn, display=display)
-    except UnboundLocalError:
-        from ColorPrint import err_print
-        err_print(sn, err_msg, detail=detail, status=status, no_sn=no_sn, display=display)
+    from ColorPrint import err_print
+    err_print(sn, err_msg, detail=detail, status=status, no_sn=no_sn, display=display)
 
 
 def get_max_multi_thread():
@@ -163,7 +168,9 @@ def __init_settings():
                 'save_logs': True,
                 'quantity_of_logs': 7,
                 'config_version': latest_config_version,
-                'database_version': latest_database_version
+                'database_version': latest_database_version,
+                'use_cron': False,
+                'seconds_offset': 0
                 }
     with open(config_path, 'w', encoding='utf-8') as f:
         json.dump(settings, f, ensure_ascii=False, indent=4)
@@ -390,6 +397,12 @@ def __update_settings(old_settings):  # 升级配置文件
     if 'parse_sn_cd' not in new_settings.keys():
         # v24.4 sn解析冷卻時間(秒)
         new_settings['parse_sn_cd'] = 5
+        
+    if  'use_cron' not in new_settings.keys():
+        new_settings['use_cron'] = False
+        
+    if 'seconds_offset' not in new_settings.keys():
+       new_settings['seconds_offset'] = 0
 
     new_settings['config_version'] = latest_config_version
     with open(config_path, 'w', encoding='utf-8') as f:
@@ -451,7 +464,7 @@ def __update_database(old_version):
     __color_print(0, msg, status=2, no_sn=True)
 
 
-def __read_settings_file():
+def __read_settings_file() -> dict:
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             # 转义win路径
@@ -507,13 +520,13 @@ def del_bom(path, display=True):
                 break
 
 
-def read_settings(config=''):
-    if config == '':
+def read_settings(config: Optional[dict] = None):
+    if config is None:
         if not os.path.exists(config_path):
             __init_settings()
 
         settings = __read_settings_file()
-    else:
+    elif isinstance(config, dict):
         # 用于检查 web 控制台回传的配置是否正确
         settings = config
 
@@ -610,7 +623,9 @@ def check_encoding(file_path):
     # 识别文件编码, 将非 UTF-8 编码转为 UTF-8
     with open(file_path, 'rb') as f:
         data = f.read()
-        file_encoding = chardet.detect(data)['encoding']  # 识别文件编码
+        file_encoding = chardet.detect(data).get('encoding')  # 识别文件编码
+        if file_encoding is None:
+            raise Exception(f"{file_path} Unexpected file encoding")
         if file_encoding == 'utf-8' or file_encoding == 'ascii' or not f.read(1):
             # 如果为 UTF-8 编码, 无需操作 / 文件為空
             return
@@ -705,7 +720,7 @@ def read_cookie(log=False):
             for line in f.readlines():
                 if not line.isspace():  # 跳过空白行
                     cookies = line.replace('\n', '')  # 刪除换行符
-                    cookies = dict([list(map(lambda x: quote(x, safe='') if re.match(r'[\u4e00-\u9fa5]', x) else x,  l.split("=", 1))) for l in cookies.split("; ")])
+                    cookies = dict([list(map(lambda x: quote(x, safe='') if re.match(r'[\u4e00-\u9fa5]', x) else x,  y.split("=", 1))) for y in cookies.split("; ")])
                     cookies.pop('ckBH_lastBoard', 404)
                     cookie = cookies
                     if log:
@@ -728,7 +743,7 @@ def invalid_cookie():
         invalid_cookie_path = cookie_path.replace('cookie.txt', 'invalid_cookie.txt')
         try:
             global cookie
-            cookie = None  # 重置已读取的cookie
+            cookie = None  # type: ignore # 重置已读取的cookie
             if os.path.exists(invalid_cookie_path):
                 os.remove(invalid_cookie_path)
             os.rename(cookie_path, invalid_cookie_path)
@@ -753,7 +768,7 @@ def get_cookie_time():
 
 def renew_cookies(new_cookie, log=True):
     global cookie
-    cookie = None  # 重置cookie
+    cookie = None  # type: ignore # 重置cookie
     new_cookie_str = ''
     for key, value in new_cookie.items():
         new_cookie_str = new_cookie_str + key + '=' + value + '; '
@@ -805,7 +820,7 @@ def __remove_superfluous_logs(max_num):
                 __color_print(0, '刪除過期日志: ' + log, no_sn=True, display=False)
 
 
-def write_settings(web_config):
+def write_settings(web_config: dict):
     web_config = read_settings(web_config)  # 正规化配置
 
     # 还原配置
@@ -831,11 +846,13 @@ def write_sn_list(sn_list_content):
 
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    local_ip = None
     try:
         s.connect(('8.8.8.8', 80))
         local_ip = s.getsockname()[0]
     except Exception:
-        local_ip.close()
+        if local_ip:
+            local_ip.close()
     return local_ip
 
 

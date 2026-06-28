@@ -1,3 +1,30 @@
+
+
+
+import argparse
+from datetime import datetime, timezone
+import os
+import platform
+import random
+import re
+import signal
+import socket
+import sqlite3
+import subprocess
+import sys
+import threading
+import time
+import traceback
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+import requests
+import Config
+from Anime import Anime, TryTooManyTimeError
+from ColorPrint import err_print
+from Danmu import Danmu
+from spin import spin
+
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # @Time    : 2019/1/4 1:00
@@ -6,24 +33,7 @@
 # @Software: PyCharm
 
 # 非阻塞 (Web)
-from gevent import monkey
-monkey.patch_all()
 
-
-import os, sys, time, re, random, traceback, argparse
-import signal
-import sqlite3
-import threading
-import subprocess
-import platform
-import socket
-import pip_system_certs.wrapt_requests
-import requests
-
-import Config
-from Anime import Anime, TryTooManyTimeError
-from ColorPrint import err_print
-from Danmu import Danmu
 
 
 def port_is_available(port):
@@ -38,7 +48,7 @@ def port_is_available(port):
         return True
 
 
-def gost_port():
+def get_gost_port():
     random_port = random.randint(40000, 60000)
     while not port_is_available(random_port):
         # 如果该端口不可用
@@ -90,7 +100,7 @@ def read_db_all():
 
     anime_db = [0] * len(values)
     for i in range(len(values)):
-        anime_db[i] = {'sn': values[i][0],
+        anime_db[i] = {'sn': values[i][0], # type: ignore
                     'title': values[i][1],
                     'anime_name': values[i][2],
                     'episode': values[i][3],
@@ -334,7 +344,7 @@ def check_tasks():
             #     time.sleep(settings['parse_sn_cd'])
             continue
         anime = anime['anime']
-        err_print(sn, '更新資訊', '正在檢查《' + anime.get_bangumi_name() + '》')
+        err_print(sn, '更新資訊', f'正在檢查 《 {anime.get_bangumi_name()} 》')
         episode_list = list(anime.get_episode_list().values())
 
         if sn_dict[sn]['mode'] == 'all':
@@ -741,7 +751,7 @@ def __init_proxy():
         # 需要使用 gost 的情况
         # 寻找 gost
         check_gost = subprocess.Popen('gost -h', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if check_gost.stderr.readlines():  # 查找 gost 是否已放入系统 path
+        if check_gost.stderr.readlines():  # type: ignore # 查找 gost 是否已放入系统 path
             gost_path = 'gost'
         else:
             # print('没有在系统PATH中发现gost，尝试在所在目录寻找')
@@ -844,7 +854,7 @@ def run_dashboard():
         host = settings['dashboard']['host']
         dashboard_address = '訪問地址: ' + dashboard_address
 
-    dashboard_address = dashboard_address + host + ':' + str(settings['dashboard']['port'])
+    dashboard_address = f'{dashboard_address}{host}:{str(settings['dashboard']['port'])}'
     err_print(0, 'Web控制面板已啓動', dashboard_address, no_sn=True, status=2)
 
 def auto_update():
@@ -875,7 +885,7 @@ def auto_update():
                 err_print(task_sn, '加入任務列隊')
     info = '本次更新添加了 '+str(new_tasks_counter)+' 個新任務, 目前列隊中共有 ' + str(len(processing_queue)) + ' 個任務'
     err_print(0, '更新資訊', info, no_sn=True)
-    err_print(0, '更新终了', no_sn=True)
+    err_print(0, '更新終了', no_sn=True)
     print()
 
 
@@ -891,9 +901,10 @@ upload_limiter = threading.Semaphore(settings['multi_upload'])  # 并发上传�
 db_locker = threading.Semaphore(1)
 thread_tasks = []
 gost_subprocess = None  # 存放 gost 的 subprocess.Popen 对象, 用于结束时 kill gost
-gost_port = gost_port()  # gost 端口
+gost_port = get_gost_port()  # gost 端口
 sn_dict = Config.read_sn_list()
 danmu = settings['danmu']
+fetch_scheduler = BackgroundScheduler()
 
 if __name__ == '__main__':
 
@@ -1054,15 +1065,35 @@ if __name__ == '__main__':
         run_dashboard()
     
     # Fixing the delay on next update
-    while True:
-        if scheduleUpdateTime is None or round(time.time() * 1000) - scheduleUpdateTime >= settings['check_frequency'] * 60 * 1000:
-            if scheduleUpdateTime is None:
-                scheduleUpdateTime = round(time.time() * 1000)
-            else:
-                scheduleUpdateTime = scheduleUpdateTime + settings['check_frequency'] * 60 * 1000
-                
-            update_task = threading.Thread(target=auto_update)
-            update_task.daemon = True
-            update_task.start()
+    if settings['use_cron']:
+        seconds_offset = settings["seconds_offset"]
+        if isinstance(seconds_offset, int) and seconds_offset >= 0:
+           pass
         else:
-            time.sleep(1)
+            seconds_offset = 0
+            
+        fetch_scheduler.add_job(
+            func=auto_update, 
+            trigger='cron',
+            minute=f'*/{settings['check_frequency']}', 
+            second=f'{seconds_offset}',
+            replace_existing=True, 
+            coalesce=True,
+            max_instances=1,
+            next_run_time=datetime.now()
+        )
+    else:
+        fetch_scheduler.add_job(
+            func=auto_update,
+            trigger='interval',
+            seconds=settings['check_frequency'] * 60,
+            replace_existing=True, 
+            coalesce=True,
+            max_instances=1,
+            next_run_time=datetime.now()
+        )
+        
+    fetch_scheduler.start()    
+    spin()
+    fetch_scheduler.shutdown(wait=True)
+    sys.exit(0)

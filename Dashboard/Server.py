@@ -1,3 +1,27 @@
+import json
+import logging
+import mimetypes
+import os
+import random
+import re
+import ssl
+import string
+import threading
+import time
+import traceback
+from logging.handlers import TimedRotatingFileHandler
+
+import termcolor
+from flask import Flask, jsonify, render_template, request
+from flask_sockets import Sockets
+from gevent.pywsgi import WSGIServer
+from geventwebsocket.exceptions import WebSocketError
+from geventwebsocket.handler import WebSocketHandler
+
+from aniGamerPlus import Config
+from aniGamerPlus import __cui as cui
+from ColorPrint import err_print
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # @Time    : 2019/6/26 16:12
@@ -5,29 +29,6 @@
 # @File    : Server.py
 # @Software: PyCharm
 
-# 非阻塞
-from gevent import monkey; monkey.patch_all()
-from gevent import spawn
-
-import json, sys, os, re, time
-import threading, traceback
-import random, string
-
-from aniGamerPlus import Config
-from flask import Flask, request, jsonify
-from flask import render_template
-from flask_basicauth import BasicAuth
-from aniGamerPlus import __cui as cui
-import logging, termcolor
-from ColorPrint import err_print
-from logging.handlers import TimedRotatingFileHandler
-import mimetypes
-# ws 支持
-import ssl
-from flask_sockets import Sockets
-from gevent.pywsgi import WSGIServer
-from geventwebsocket.exceptions import WebSocketError
-from geventwebsocket.handler import WebSocketHandler
 
 mimetypes.add_type('text/css', '.css')
 mimetypes.add_type('application/x-javascript', '.js')
@@ -167,7 +168,7 @@ def get_token():
     global websocket_token
     # 生成 32 位随机字符串作为token
     websocket_token = ''.join(random.sample(string.ascii_letters + string.digits, 32))
-    return websocket_token, '200 ok'
+    return websocket_token
 
 
 @sockets.route('/data/tasks_progress')
@@ -211,7 +212,6 @@ def run():
         app.config['BASIC_AUTH_USERNAME'] = settings['dashboard']['username']  # BasicAuth user
         app.config['BASIC_AUTH_PASSWORD'] = settings['dashboard']['password']  # BasicAuth password
         app.config['BASIC_AUTH_FORCE'] = True  # 全站验证
-        basic_auth = BasicAuth(app)
 
     port = settings['dashboard']['port']
     host = settings['dashboard']['host']
@@ -225,14 +225,14 @@ def run():
         # app.run(use_reloader=False, port=port, host=host, ssl_context=ssl_keys)
         server = WSGIServer((host, port), app, handler_class=WebSocketHandler, certfile=ssl_crt, keyfile=ssl_key)
 
-        wrap_socket = server.wrap_socket
-        wrap_socket_and_handle = server.wrap_socket_and_handle
+        original_wrap_socket = getattr(server, 'wrap_socket')
+        original_wrap_socket_and_handle = getattr(server, 'wrap_socket_and_handle')
 
         # 处理一些浏览器(比如Chrome)尝试 SSL v3 访问时报错
         def my_wrap_socket(sock, **_kwargs):
             try:
                 # print('my_wrap_socket')
-                return wrap_socket(sock, **_kwargs)
+                return original_wrap_socket(sock, **_kwargs)
             except ssl.SSLError:
                 # print('my_wrap_socket ssl.SSLError')
                 pass
@@ -241,13 +241,13 @@ def run():
         def my_wrap_socket_and_handle(client_socket, address):
             try:
                 # print('my_wrap_socket_and_handle')
-                return wrap_socket_and_handle(client_socket, address)
+                return original_wrap_socket_and_handle(client_socket, address)
             except AttributeError:
                 # print('my_wrap_socket_and_handle AttributeError')
                 pass
 
-        server.wrap_socket = my_wrap_socket
-        server.wrap_socket_and_handle = my_wrap_socket_and_handle
+        setattr(server, 'wrap_socket', my_wrap_socket)
+        setattr(server, 'wrap_socket_and_handle', my_wrap_socket_and_handle)
 
     else:
         # app.run(use_reloader=False, port=port, host=host)

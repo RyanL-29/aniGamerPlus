@@ -1149,9 +1149,9 @@ class Anime:
         Config.tasks_progress_rate[int(self._sn)]['filename'] = self.get_filename()
 
         if self._settings['segment_download_mode']:
-            self.__segment_download_mode(resolution)
+            self.__segment_download_mode(resolution, anime_season_group_id)
         else:
-            self.__ffmpeg_download_mode(resolution)
+            self.__ffmpeg_download_mode(resolution, anime_season_group_id)
 
         # 任务完成, 从任务进度表中删除
         del Config.tasks_progress_rate[int(self._sn)]

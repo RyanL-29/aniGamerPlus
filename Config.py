@@ -681,11 +681,14 @@ def read_sn_list():
                     # 是否有设定番剧重命名
                     if re.match(r'.*<.*>.*', i):
                         rename = re.findall(r'<.*>', i)[0][1:-1]
+                    if re.match(r'.*{.*}.*', i):
+                        anime_season_group_id = re.findall(r'{.*}.*', i)[0][1:-1]
                 else:  # 没有指定下载模式则使用默认设定
                     sn_dict[int(a[0])] = {'mode': settings['default_download_mode']}
                 bangumi_tag = re.sub(r"( )+$", "", bangumi_tag)
                 sn_dict[int(a[0])]['tag'] = bangumi_tag
                 sn_dict[int(a[0])]['rename'] = rename
+                sn_dict[int(a[0])]['anime_season_group_id'] = anime_season_group_id
         return sn_dict
 
 

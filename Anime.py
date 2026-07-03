@@ -633,7 +633,7 @@ class Anime:
         temp_filename = Config.legalize_filename(temp_filename)
         return temp_filename
 
-    def __segment_download_mode(self, resolution=''):
+    def __segment_download_mode(self, resolution='', anime_season_group_id=''):
         # 设定文件存放路径
         filename = self.__get_filename(resolution)
         merging_filename = self.__get_temp_filename(resolution, temp_suffix='MERGING')
@@ -825,11 +825,18 @@ class Anime:
         if self._settings['add_bangumi_name_to_video_meta']:
             # 将檔案名寫入 metadata
             variable = 'album=' + self._bangumi_name
-            variable2 = 'title=' + self._bangumi_name
-            variable3 = 'description=' + anime_description
             ffmpeg_cmd[7:7] = iter(['-metadata', variable])
+            
+            variable2 = 'title=' + self._bangumi_name
             ffmpeg_cmd[7:7] = iter(['-metadata', variable2])
+            
+            variable3 = 'description=' + anime_description
             ffmpeg_cmd[7:7] = iter(['-metadata', variable3])
+            
+            if anime_season_group_id:
+                variable4 = 'grouping='+ anime_season_group_id
+                ffmpeg_cmd[7:7] = iter(['-metadata', variable4])
+            
         if self._settings['audio_language']:
             if self._title:
                 if self._title.find('中文') == -1:
@@ -861,7 +868,7 @@ class Anime:
 
         err_print(self._sn, '下載完成', filename, status=2)
 
-    def __ffmpeg_download_mode(self, resolution=''):
+    def __ffmpeg_download_mode(self, resolution='', anime_season_group_id=''):
         # 设定文件存放路径
         filename = self.__get_filename(resolution)
         downloading_filename = self.__get_temp_filename(resolution, temp_suffix='DOWNLOADING')
@@ -869,19 +876,26 @@ class Anime:
         output_file = os.path.join(self._bangumi_dir, filename)  # 完整输出路径
         downloading_file = os.path.join(self._temp_dir, downloading_filename)
 
-        anime_meta = self._src.find_all('meta')
+        anime_description = ""
+        anime_cover_link = ""
 
         if not self._settings['use_mobile_api']:
-            raw_anime_description = self._src.find('div', 'data_intro').p.string or "" # type: ignore
+            anime_meta = self._src.find_all('meta')
+            raw_anime_description = self._src.find('div', 'data-intro') # type: ignore
+            if raw_anime_description is None:
+                raw_anime_description = ""
+            else:
+                raw_anime_description = raw_anime_description.p.string or ""
             anime_description = re.sub(r'\s+', ' ', raw_anime_description)  # 去除重复空格
-        else:
-            anime_description = ""
-        
-        for m in anime_meta:
+            for m in anime_meta:
               if m.get('name') == 'thumbnail':
                 anime_cover_link = m.get('content')
+        else:
+            anime_description = self._mobile_src['data']['anime']['content'] # type: ignore
+            anime_cover_link = self._mobile_src['data']['anime']['cover'] # type: ignore
+
         ssl._create_default_https_context = ssl._create_unverified_context
-        urllib.request.urlretrieve(anime_cover_link, os.path.join(self._temp_dir, 'cover.jpg'), ) # type: ignore
+        urllib.request.urlretrieve(anime_cover_link, os.path.join(self._temp_dir, f'{str(self._sn)}_cover.jpg')) # type: ignore
 
         if self._settings['video_filename_extension'] == "mp4":
              # 构造 ffmpeg 命令
@@ -890,7 +904,7 @@ class Anime:
                     self._settings['ua'],
                     '-headers', "Origin: https://ani.gamer.com.tw",
                     '-i', self._m3u8_dict[resolution],
-                    '-i', os.path.join(self._temp_dir, 'cover.jpg'),
+                    '-i', os.path.join(self._temp_dir, f'{str(self._sn)}_cover.jpg'),
                     '-map', '1',
                     '-map', '0',
                     '-c', 'copy', 
@@ -915,11 +929,18 @@ class Anime:
         if self._settings['add_bangumi_name_to_video_meta']:
             # 将檔案名寫入 metadata
             variable = 'album=' + self._bangumi_name
-            variable2 = 'title=' + self._bangumi_name
-            variable3 = 'description=' + anime_description
             ffmpeg_cmd[7:7] = iter(['-metadata', variable])
+            
+            variable2 = 'title=' + self._bangumi_name
             ffmpeg_cmd[7:7] = iter(['-metadata', variable2])
+            
+            variable3 = 'description=' + anime_description
             ffmpeg_cmd[7:7] = iter(['-metadata', variable3])
+            
+            if anime_season_group_id:
+                variable4 = 'grouping='+ anime_season_group_id
+                ffmpeg_cmd[7:7] = iter(['-metadata', variable4])
+            
         if self._settings['audio_language']:
             if self._title:
                 if self._title.find('中文') == -1:
@@ -1005,7 +1026,7 @@ class Anime:
                 run_ffmpeg.returncode) + ' Bad segment=' + str(return_str.find('Failed to open segment'))
             err_print(self._sn, '下載失败', err_msg_detail, status=1)
 
-    def download(self, resolution='', save_dir='', bangumi_tag='', realtime_show_file_size=False, rename='', classify=True):
+    def download(self, resolution='', save_dir='', bangumi_tag='', realtime_show_file_size=False, rename='', anime_season_group_id='', classify=True):
         self.realtime_show_file_size = realtime_show_file_size
         if not resolution:
             resolution = self._settings['download_resolution']

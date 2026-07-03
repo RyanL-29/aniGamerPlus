@@ -2,7 +2,7 @@
 
 
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime
 import os
 import platform
 import random
@@ -16,7 +16,6 @@ import threading
 import time
 import traceback
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 import requests
 import Config
 from Anime import Anime, TryTooManyTimeError
@@ -84,7 +83,6 @@ def build_anime(sn):
 
 
 def read_db_all():
-    db_locker.acquire()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -95,7 +93,6 @@ def read_db_all():
     except IndexError as e:
         cursor.close()
         conn.close()
-        db_locker.release()
         raise e
 
     anime_db = [0] * len(values)
@@ -112,7 +109,6 @@ def read_db_all():
 
     cursor.close()
     conn.close()
-    db_locker.release()
     return anime_db
 
 
@@ -220,6 +216,7 @@ def update_db(anime):
 def worker(sn, sn_info, realtime_show_file_size=False):
     bangumi_tag = sn_info['tag']
     rename = sn_info['rename']
+    anime_season_group_id = sn_info['anime_season_group_id']
 
     def upload_quit():
         queue.pop(sn)
@@ -277,7 +274,7 @@ def worker(sn, sn_info, realtime_show_file_size=False):
     anime = anime['anime']
 
     try:
-        anime.download(settings['download_resolution'], bangumi_tag=bangumi_tag, rename=rename,
+        anime.download(settings['download_resolution'], bangumi_tag=bangumi_tag, rename=rename, anime_season_group_id=anime_season_group_id,
                        realtime_show_file_size=realtime_show_file_size, classify=settings['classify_bangumi'])
     except BaseException as e:
         # 兜一下各种奇奇怪怪的错误

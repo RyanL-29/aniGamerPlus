@@ -659,6 +659,7 @@ def read_sn_list():
     with open(sn_list_path, 'r', encoding='utf-8') as f:
         sn_dict = {}
         bangumi_tag = ''
+        anime_season_group_id = ''
         for i in f.readlines():
             if re.match(r'^@.+', i):  # 读取番剧分类
                 bangumi_tag = i[1:-1]

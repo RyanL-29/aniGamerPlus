@@ -63,7 +63,7 @@ jobs:
         uv sync
 
     - name: Build exe
-      run: pyinstaller --noconfirm --distpath %cd%\ --onefile --console --icon %cd%\Dashboard\static\img\aniGamerPlus.ico --clean %cd%\aniGamerPlus.py
+      run: uv run pyinstaller --noconfirm --distpath %cd%\ --onefile --console --icon %cd%\Dashboard\static\img\aniGamerPlus.ico --clean %cd%\aniGamerPlus.py
       shell: cmd
 
     - name: Archive release

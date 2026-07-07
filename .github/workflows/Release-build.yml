@@ -13,13 +13,14 @@ jobs:
       # You can use PyPy versions in python-version.
       # For example, pypy2 and pypy3
       matrix:
-        python: [3.9.x]
+        python: [3.14.x]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v7
+
     - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v2
-      with:
+      uses: actions/setup-python@v6
+      with: 
           python-version: ${{ matrix.python }}
 
     - name: Set up ENV
@@ -29,9 +30,16 @@ jobs:
         echo ("RELEASE_TITLE=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_ryan_fork_windows_64bit") >> $env:GITHUB_ENV
         echo ("RELEASE_FILENAME=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_ryan_fork_windows_64bit.zip") >> $env:GITHUB_ENV
         git fetch --tags --force
+
     - name: Get tag message
-      id: tag_data
-      uses: ericcornelissen/git-tag-annotation-action@v1
+    - id: tag-data
+      run: |
+        {
+          echo 'annotation<<EOF'
+          git for-each-ref "${GITHUB_REF}" --format '%(contents)'
+          echo 'EOF'
+        } >>"${GITHUB_OUTPUT}"
+
     - name: Test ENV
       run: |
         echo $RELEASE_VERSION
@@ -41,12 +49,18 @@ jobs:
         echo $RELEASE_FILENAME
         echo ${{ env.RELEASE_FILENAME }}
         echo $TAG_MESSAGE
-        echo '${{ steps.tag_data.outputs.git-tag-annotation }}'
+        echo '${{ steps.tag_data.outputs.annotation }}'
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        version: "latest"
+
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
+        uv sync
+
     - name: Build exe
       run: pyinstaller --noconfirm --distpath %cd%\ --onefile --console --icon %cd%\Dashboard\static\img\aniGamerPlus.ico --clean %cd%\aniGamerPlus.py
       shell: cmd
@@ -65,6 +79,7 @@ jobs:
         body: ${{ steps.tag_data.outputs.git-tag-annotation }}
         draft: false
         prerelease: false
+        
     - name: Upload Release Asset
       id: upload-release-asset
       uses: actions/upload-release-asset@v1

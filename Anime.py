@@ -652,11 +652,23 @@ class Anime:
 
         if not self._settings['use_mobile_api']:
             anime_meta = self._src.find_all('meta')
-            raw_anime_description = self._src.find('div', 'data-intro') # type: ignore
+            anime_description_rq = self.__request_json(f'https://api.gamer.com.tw/anime/v1/video.php?videoSn={self._sn}', no_cookies=True)
+            raw_anime_description = None
+            if isinstance(anime_description_rq, dict) and anime_description_rq.get('data'):
+                try:
+                    full_anime_description_html = anime_description_rq['data']['anime']['contentHtml']
+                    anime_description_html_list = full_anime_description_html.split('＜製作團隊＞')
+                    if len(anime_description_html_list) >= 2:
+                        raw_anime_description = BeautifulSoup(anime_description_html_list[0], 'html.parser').get_text(separator=" ", strip=True)
+                except Exception:
+                    pass
+                
             if raw_anime_description is None:
-                raw_anime_description = ""
-            else:
-                raw_anime_description = raw_anime_description.p.string or ""
+                raw_anime_description = self._src.find('div', 'data-intro') # type: ignore
+                if raw_anime_description is None:
+                    raw_anime_description = ""
+                else:
+                    raw_anime_description = raw_anime_description.p.string or ""
             anime_description = re.sub(r'\s+', ' ', raw_anime_description)  # 去除重复空格
             for m in anime_meta:
               if m.get('name') == 'thumbnail':

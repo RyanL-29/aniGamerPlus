@@ -871,6 +871,7 @@ def auto_update():
     danmu = settings['danmu'] # 避免手動加入工作時，global 覆寫掉 config 的 danmu 設定
     check_tasks()  # 检查更新，生成任务列队
     new_tasks_counter = 0  # 新增任务计数器
+    
     if queue:
         for task_sn in queue.keys():
             if task_sn not in processing_queue:  # 如果该任务没有在进行中，则启动
@@ -880,6 +881,7 @@ def auto_update():
                 processing_queue.append(task_sn)
                 new_tasks_counter = new_tasks_counter + 1
                 err_print(task_sn, '加入任務列隊')
+    
     info = '本次更新添加了 '+str(new_tasks_counter)+' 個新任務, 目前列隊中共有 ' + str(len(processing_queue)) + ' 個任務'
     err_print(0, '更新資訊', info, no_sn=True)
     err_print(0, '更新終了', no_sn=True)

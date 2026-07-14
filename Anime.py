@@ -20,7 +20,7 @@ import urllib.request
 from ftplib import FTP, FTP_TLS
 from urllib.parse import quote
 
-import pyhttpx
+import curl_cffi
 import requests
 from bs4 import BeautifulSoup
 
@@ -45,11 +45,11 @@ class Anime:
         self._temp_dir = self._settings['temp_dir']
         self._gost_port = str(gost_port)
 
-        self._session = requests.session()
+        self._session = requests.Session()
         if 'firefox' in self._settings['ua'].lower():
-            self._pyhttpx_session = pyhttpx.HttpSession(browser_type='firefox')
+            self._curl_cffi_session = curl_cffi.Session(impersonate="firefox")
         else:
-            self._pyhttpx_session = pyhttpx.HttpSession(browser_type='chrome')
+            self._curl_cffi_session = curl_cffi.Session(impersonate="chrome")
         self._title = ''
         self._sn = sn
         self._bangumi_name = ''
@@ -296,11 +296,9 @@ class Anime:
         while True:
             try:
                 if use_pyhttpx:
-                    # https://github.com/miyouzi/aniGamerPlus/issues/249 pyhttpx 作者 在改動
-                    # https://github.com/zero3301/pyhttpx/commit/4735190df741f4c00287ec948f0734fd2c21bfee
-                    # 把 proxy 驗證放到了 proxies URL 裏面
-                    f = self._pyhttpx_session.get(req, headers=current_header, cookies=cookies, timeout=10,
-                                                  proxies=self._proxies)
+                    # Changed from deprecated pyhttpx to curl_cffi.
+                    f = self._curl_cffi_session.get(req, headers=current_header, cookies=cookies, timeout=10,
+                                                  proxies=curl_cffi.ProxySpec(*self._proxies))
                 else:
                     f = self._session.get(req, headers=current_header, cookies=cookies, timeout=10) # type: ignore
             except requests.exceptions.RequestException as e:
@@ -316,12 +314,12 @@ class Anime:
         # 处理 cookie
         if not self._cookies:
             # 当实例中尚无 cookie, 则读取
-            self._cookies = self._session.cookies.get_dict()
+            self._cookies = {k: (v if v is not None else "") for k, v in self._session.cookies.get_dict().items()}
         elif 'nologinuser' not in self._cookies.keys() and 'BAHAID' not in self._cookies.keys():
             # 处理游客cookie
             if 'nologinuser' in self._session.cookies.keys():
                 # self._cookies['nologinuser'] = self._session.cookies['nologinuser']
-                self._cookies = self._session.cookies.get_dict()
+                self._cookies = {k: (v if v is not None else "") for k, v in self._session.cookies.get_dict().items()} 
         else:  # 如果用户提供了 cookie, 则处理cookie刷新
             if 'set-cookie' in f.headers.keys():  # 发现server响应了set-cookie
                 if 'deleted' in f.headers.get('set-cookie', ''):

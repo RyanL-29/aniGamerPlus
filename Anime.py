@@ -68,6 +68,7 @@ class Anime:
         self._mobile_src: dict
         self._src: BeautifulSoup
         self._proxies = {}
+        self._renewing_cookie = False
 
         self.season_title_filter = re.compile('第[零一二三四五六七八九十]{1,3}季$')
         self.extra_title_filter = re.compile('\\[(特別篇|中文配音)\\]$')
@@ -276,7 +277,7 @@ class Anime:
         else:
             self._req_header = self._web_header
 
-    def __request(self, req, no_cookies=False, show_fail=True, max_retry=3, addition_header=None):
+    def __request(self, req, no_cookies=False, show_fail=True, max_retry=3, addition_header=None, check_cookie=False):
         # 设置 header
         current_header = self._req_header
         if addition_header is None:
@@ -314,7 +315,7 @@ class Anime:
             # 处理游客cookie
             if 'nologinuser' in self._curl_cffi_session.cookies.keys():
                 self._cookies = {k: (v if v is not None else "") for k, v in self._curl_cffi_session.cookies.get_dict().items()} 
-        else:  # 如果用户提供了 cookie, 则处理cookie刷新
+        elif not check_cookie:  # 如果用户提供了 cookie, 则处理cookie刷新
             if 'set-cookie' in f.headers.keys():  # 发现server响应了set-cookie
                 if 'deleted' in f.headers.get('set-cookie', ''):
                     # set-cookie刷新cookie只有一次机会, 如果其他线程先收到, 则此处会返回 deleted
@@ -367,7 +368,7 @@ class Anime:
                     key_list_str = ', '.join(self._curl_cffi_session.cookies.keys())
                     err_print(self._sn, f'用戶cookie刷新 {key_list_str} ', display=False)
 
-                    self.__request('https://ani.gamer.com.tw/')
+                    self.__request('https://ani.gamer.com.tw/', check_cookie=True)
                     # 20210724 动画疯一步到位刷新 Cookie
                     if 'BAHARUNE' in f.headers.get('set-cookie', ''):
                         err_print(0, '用戶cookie已更新', status=2, no_sn=True)

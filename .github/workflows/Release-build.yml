@@ -28,8 +28,8 @@ jobs:
       run: |
         chcp 65001
         echo ("RELEASE_VERSION=" + $env:GITHUB_REF.replace('refs/tags/', '')) >> $env:GITHUB_ENV
-        echo ("RELEASE_TITLE=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_ryan_fork_windows_64bit") >> $env:GITHUB_ENV
-        echo ("RELEASE_FILENAME=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_ryan_fork_windows_64bit.zip") >> $env:GITHUB_ENV
+        echo ("RELEASE_TITLE=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_next") >> $env:GITHUB_ENV
+        echo ("RELEASE_FILENAME=aniGamerPlus_" + $env:GITHUB_REF.replace('refs/tags/', '') + "_next.zip") >> $env:GITHUB_ENV
         git fetch --tags --force
 
     - name: Get tag message

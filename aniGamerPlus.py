@@ -16,7 +16,7 @@ import threading
 import time
 import traceback
 from apscheduler.schedulers.background import BackgroundScheduler
-import requests
+from curl_cffi import requests
 import Config
 from Anime import Anime, TryTooManyTimeError
 from ColorPrint import err_print
@@ -778,7 +778,7 @@ def __init_proxy():
 
 
 def do_request(url, headers, cookies, params=None):
-    return requests.get(url, headers=headers, cookies=cookies, params=params)
+    return requests.get(url, headers=headers, cookies=cookies, params=params, impersonate="chrome")
 
 
 def parse_anime(soup, animes, headers, cookies):
@@ -817,7 +817,7 @@ def export_my_anime():
     while True:
         params = {'page': page, 'sort': 0}
         bahamygatherPage = do_request(url, headers=header, cookies=cookies, params=params)
-        if bahamygatherPage.status_code == requests.codes.ok:
+        if bahamygatherPage.ok:
             soup = BeautifulSoup(bahamygatherPage.text, 'html.parser')
             if not parse_anime(soup, animes, header, cookies):
                 break

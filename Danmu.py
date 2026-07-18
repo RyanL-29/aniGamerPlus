@@ -1,5 +1,5 @@
 
-import requests
+import curl_cffi
 import json
 import random
 import re
@@ -12,6 +12,7 @@ class Danmu():
         self._sn = sn
         self._full_filename = full_filename
         self._cookies = cookies
+        self._curl_cffi_session = curl_cffi.Session(impersonate="chrome")
 
     def get_BGRcolor(self, RGBcolor):
         r = RGBcolor[0:2]
@@ -38,7 +39,7 @@ class Danmu():
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
         }
         data = {'sn': str(self._sn)}
-        r = requests.post(
+        r = self._curl_cffi_session.post(
             'https://ani.gamer.com.tw/ajax/danmuGet.php', data=data, headers=h)
 
         if r.status_code != 200:
@@ -55,7 +56,7 @@ class Danmu():
             'user-agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36',
         }
-        ban_words_response = requests.get(
+        ban_words_response = self._curl_cffi_session.get(
             'https://ani.gamer.com.tw/ajax/keywordGet.php', headers=h, cookies=self._cookies)
 
         if ban_words_response.status_code != 200:

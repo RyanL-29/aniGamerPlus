@@ -165,8 +165,13 @@ class Anime:
             try:
                 self._title = soup.find('div', attrs={'class':'anime_name'}).h1.string  # type: ignore # 提取标题（含有集数）
             except (TypeError, AttributeError):
-                # 该sn下没有动画
-                err_print(self._sn, 'ERROR: 該 sn 下真的有動畫？', status=1)
+                page_title = soup.title.string if soup.title else ''
+                if soup.find('div', class_='captcha') is not None or '系統異常' in str(page_title):
+                    # 收到的是 WAF 人機驗證頁, 不是動畫頁
+                    err_print(self._sn, 'ERROR: 頁面被反爬蟲機制攔截 (人機驗證頁)', status=1)
+                else:
+                    # 该sn下没有动画
+                    err_print(self._sn, 'ERROR: 該 sn 下真的有動畫？', status=1)
                 self._episode_list = {}
                 sys.exit(1)
 

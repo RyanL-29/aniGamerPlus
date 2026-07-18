@@ -6,13 +6,18 @@ import re
 import sys
 import os
 from ColorPrint import err_print
+import Config
 
 class Danmu():
     def __init__(self, sn, full_filename, cookies):
+        self._settings = Config.read_settings()
         self._sn = sn
         self._full_filename = full_filename
         self._cookies = cookies
-        self._curl_cffi_session = curl_cffi.Session(impersonate="chrome")
+        impersonate: curl_cffi.BrowserTypeLiteral = "chrome"
+        if 'firefox' in self._settings['ua'].lower():
+           impersonate = "firefox"
+        self._curl_cffi_session = curl_cffi.Session(impersonate=impersonate)
 
     def get_BGRcolor(self, RGBcolor):
         r = RGBcolor[0:2]

@@ -254,13 +254,13 @@ class Anime:
     def __init_header(self):
         # 伪装为浏览器
         host = 'ani.gamer.com.tw'
-        origin = 'https://' + host
         ua = self._settings['ua']  # cookie 自动刷新需要 UA 一致
-        ref = 'https://' + host + '/animeVideo.php?sn=' + str(self._sn)
+        ref = 'https://' + host
         lang = 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.6'
-        accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
-        accept_encoding = 'gzip, deflate'
-        cache_control = 'max-age=0'
+        sec_ch_ua = '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"'
+        accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+        accept_encoding = 'gzip, deflate, br, zstd'
+        cache_control = 'no-cache'
         self._mobile_header = {
             "User-Agent": "Animad/1.16.16 (tw.com.gamer.android.animad; build:328; Android 9) okHttp/4.4.0",
             "X-Bahamut-App-Android": "tw.com.gamer.android.animad",
@@ -275,7 +275,7 @@ class Anime:
                 "Accept": accept,
                 "Accept-Encoding": accept_encoding,
                 "Cache-Control": cache_control,
-                "Origin": origin
+                "Sec-Ch-Ua": sec_ch_ua
             }
         if self._settings['use_mobile_api']:
             self._req_header = self._mobile_header
@@ -300,8 +300,9 @@ class Anime:
         while True:
             try:
                 # Changed from deprecated pyhttpx to curl_cffi.
+                proxies = curl_cffi.ProxySpec(*self._proxies) if self._proxies else None
                 f = self._curl_cffi_session.get(req, headers=current_header, cookies=cookies, timeout=10,
-                                                proxies=curl_cffi.ProxySpec(*self._proxies))
+                                                proxies=proxies)
             except curl_cffi.exceptions.RequestException as e:
                 if error_cnt >= max_retry >= 0:
                     raise TryTooManyTimeError('任務狀態: sn=' + str(self._sn) + ' 请求失败次数过多！请求链接：\n%s' % req)
@@ -311,7 +312,19 @@ class Anime:
                 time.sleep(3)
                 error_cnt += 1
             else:
+                if f.status_code == 403 and "__cf_bm" in self._curl_cffi_session.cookies:
+                    if error_cnt >= max_retry >= 0:
+                        raise TryTooManyTimeError('任務狀態: sn=' + str(self._sn) + ' Cloudflare拦截次数过多！请求链接：\n%s' % req)
+                    if show_fail:
+                        err_print(self._sn, '任務狀態', '触发 Cloudflare 403，已获取 __cf_bm，3s后重试...')
+                    
+                    cookies["__cf_bm"] = self._curl_cffi_session.cookies.get("__cf_bm", "") # type: ignore
+                    time.sleep(3)
+                    error_cnt += 1
+                    continue
+            
                 break
+                    
         # 处理 cookie
         if not self._cookies:
             # 当实例中尚无 cookie, 则读取
@@ -320,7 +333,7 @@ class Anime:
             # 处理游客cookie
             if 'nologinuser' in self._curl_cffi_session.cookies.keys():
                 self._cookies = {k: (v if v is not None else "") for k, v in self._curl_cffi_session.cookies.get_dict().items()} 
-        elif not check_cookie:  # 如果用户提供了 cookie, 则处理cookie刷新
+        elif not check_cookie and no_cookies is False:  # 如果用户提供了 cookie, 则处理cookie刷新
             if 'set-cookie' in f.headers.keys():  # 发现server响应了set-cookie
                 if 'deleted' in f.headers.get('set-cookie', ''):
                     # set-cookie刷新cookie只有一次机会, 如果其他线程先收到, 则此处会返回 deleted
@@ -361,32 +374,24 @@ class Anime:
                             # 即使切换 header cookie 也无法刷新, 那么恢复 header, 好歹广告只有 3s
                             self._req_header = self._mobile_header
 
-                else:
+                elif 'BAHARUNE' in f.headers.get('set-cookie'):
                     # 本线程收到了新cookie
                     # 20220115 简化 cookie 刷新逻辑
                     err_print(self._sn, '收到新cookie', display=False)
+                    Config.renew_cookies(self._cookies, log=False)
+                    key_list_str = ', '.join(self._curl_cffi_session.cookies.keys())
+                    err_print(self._sn, f'用戶cookie刷新 {key_list_str} ', display=False)
                     
-                    # Get last session baharune
-                    last_session_baharune = self._cookies.get('BAHARUNE')
-                    # Update the current sesssion cookie to the variable
+                    # 20210724 动画疯一步到位刷新 Cookie
+                    self.__request('https://ani.gamer.com.tw/', check_cookie=True)
                     self._cookies.update({k: v for k, v in self._curl_cffi_session.cookies.get_dict().items() if v is not None})
-                    current_session_baharune = self._cookies.get('BAHARUNE')
-                    
-                    if current_session_baharune is not None and last_session_baharune != current_session_baharune:
-                        Config.renew_cookies(self._cookies, log=False)
-                        err_print(0, '用戶cookie已更新', status=2, no_sn=True)
-                        key_list_str = ', '.join(self._curl_cffi_session.cookies.keys())
-                        err_print(self._sn, f'用戶cookie刷新 {key_list_str} ', display=False)
-                        
-                        # 20210724 动画疯一步到位刷新 Cookie
-                        self.__request('https://ani.gamer.com.tw/', check_cookie=True)
-                        self._cookies.update({k: v for k, v in self._curl_cffi_session.cookies.get_dict().items() if v is not None})
-                        Config.renew_cookies(self._cookies, log=False)
- 
-                        if self._settings['use_mobile_api']:
-                            # 当使用 APP API 临时切换至 Web API 更新 Cookie 时，Cookie 更新成功再切换回 App Header
-                            self._req_header = self._mobile_header
-                            err_print(self._sn, '切換回 App Header 進行影片解析', display=False)
+                    Config.renew_cookies(self._cookies, log=False)
+                    err_print(0, '用戶cookie已更新', status=2, no_sn=True)
+
+                    if self._settings['use_mobile_api']:
+                        # 当使用 APP API 临时切换至 Web API 更新 Cookie 时，Cookie 更新成功再切换回 App Header
+                        self._req_header = self._mobile_header
+                        err_print(self._sn, '切換回 App Header 進行影片解析', display=False)
 
         return f
 

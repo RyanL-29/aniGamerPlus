@@ -9,7 +9,6 @@ import ctypes
 import json
 import os
 import platform
-import re
 import subprocess
 from datetime import datetime
 
@@ -23,12 +22,14 @@ def read_log_settings():
     try:
         with open(Config.get_config_path(), 'r', encoding='utf-8') as f:
             # 转义win路径
-            settings = json.loads(re.sub(r'\\', '\\\\\\\\', f.read()))
+            settings = json.load(f)
+            settings = Config.normalize_paths(settings)
     except json.JSONDecodeError:
         Config.del_bom(Config.get_config_path(), display=False)  # 移除bom
         # 重新载入
         with open(Config.get_config_path(), 'r', encoding='utf-8') as f:
-            settings = json.loads(re.sub(r'\\', '\\\\\\\\', f.read()))
+            settings = json.load(f)
+            settings = Config.normalize_paths(settings)
     except BaseException as e:
         settings['save_logs'] = True
         settings['quantity_of_logs'] = 7

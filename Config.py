@@ -31,7 +31,7 @@ sn_list_path = os.path.join(working_dir, 'sn_list.txt')
 cookie_path = os.path.join(working_dir, 'cookie.txt')
 logs_dir = os.path.join(working_dir, 'logs')
 aniGamerPlus_version = 'aniGamerPlus_v26.1_next'
-latest_config_version = 16.4
+latest_config_version = 16.5
 latest_database_version = 2.0
 cookie: dict[str, str] = None # type: ignore
 max_multi_thread = 5
@@ -111,6 +111,7 @@ def __init_settings():
                 'zerofill': 1,  # 剧集名补零, 此项填补足位数, 小于等于 1 即不补零
                 # cookie的自动刷新对 UA 有检查
                 'ua': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.96 Safari/537.36",
+                'sec_ch_ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
                 'use_proxy': False,
                 'proxy': 'http://user:passwd@example.com:1000',  # 代理功能, config_version v13.0 删除链式代理
                 "no_proxy_akamai": False,  # 不代理 akamai CDN
@@ -403,6 +404,9 @@ def __update_settings(old_settings):  # 升级配置文件
         
     if 'seconds_offset' not in new_settings.keys():
        new_settings['seconds_offset'] = 0
+       
+    if 'sec_ch_ua' not in new_settings.keys():
+        new_settings['sec_ch_ua'] = '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"'
 
     new_settings['config_version'] = latest_config_version
     with open(config_path, 'w', encoding='utf-8') as f:
@@ -462,13 +466,27 @@ def __update_database(old_version):
     conn.close()
     msg = '資料庫從 v' + str(old_version) + ' 升級到 v' + str(latest_database_version) + ' 内部資料不會丟失'
     __color_print(0, msg, status=2, no_sn=True)
+    
+
+def normalize(d):
+    if isinstance(d, dict):
+        return {k: normalize(v) for k, v in d.items()}
+    elif isinstance(d, list):
+        return [normalize(i) for i in d]
+    elif isinstance(d, str):
+        return d.replace('\\', '/')
+    return d
+
+def normalize_paths(d):
+    return {k: normalize(v) for k, v in d.items()}
 
 
 def __read_settings_file() -> dict:
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             # 转义win路径
-            return json.loads(re.sub(r'\\', '\\\\\\\\', f.read()))
+            config_content = json.load(f)
+            return normalize_paths(config_content) # type: ignore
     except json.JSONDecodeError:
         # 如果带有 BOM 头, 则去除
         try:
@@ -476,7 +494,8 @@ def __read_settings_file() -> dict:
             check_encoding(config_path)
             # 重新读取
             with open(config_path, 'r', encoding='utf-8') as f:
-                return json.loads(re.sub(r'\\', '\\\\\\\\', f.read()))
+                config_content = json.load(f)
+                return normalize_paths(config_content) # type: ignore
         except BaseException as e:
             __color_print(0, '讀取配置發生異常, 將重置配置! ' + str(e), status=1, no_sn=True)
             __init_settings()

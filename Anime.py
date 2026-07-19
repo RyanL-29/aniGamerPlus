@@ -68,7 +68,6 @@ class Anime:
         self._mobile_src: dict
         self._src: BeautifulSoup
         self._proxies = {}
-        self._renewing_cookie = False
 
         self.season_title_filter = re.compile('第[零一二三四五六七八九十]{1,3}季$')
         self.extra_title_filter = re.compile('\\[(特別篇|中文配音)\\]$')
@@ -257,7 +256,7 @@ class Anime:
         ua = self._settings['ua']  # cookie 自动刷新需要 UA 一致
         ref = 'https://' + host
         lang = 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.6'
-        sec_ch_ua = '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"'
+        sec_ch_ua = self._settings['sec_ch_ua']
         accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
         accept_encoding = 'gzip, deflate, br, zstd'
         cache_control = 'no-cache'

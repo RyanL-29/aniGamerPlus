@@ -44,7 +44,7 @@ class Anime:
         self._bangumi_dir = self._settings['bangumi_dir']
         self._temp_dir = self._settings['temp_dir']
         self._gost_port = str(gost_port)
-        impersonate: curl_cffi.BrowserTypeLiteral = "chrome"
+        impersonate: curl_cffi.BrowserTypeLiteral = "chrome124"
         if 'firefox' in self._settings['ua'].lower():
             impersonate = "firefox"
         self._curl_cffi_session = curl_cffi.Session(impersonate=impersonate)
@@ -360,18 +360,24 @@ class Anime:
                     # 本线程收到了新cookie
                     # 20220115 简化 cookie 刷新逻辑
                     err_print(self._sn, '收到新cookie', display=False)
-                    _cookie_dict = self._curl_cffi_session.cookies.get_dict()
-                    safe_cookies = {k: v for k, v in _cookie_dict.items() if v is not None}
-                    self._cookies.update(safe_cookies)
-                    Config.renew_cookies(self._cookies, log=False)
-
-                    key_list_str = ', '.join(self._curl_cffi_session.cookies.keys())
-                    err_print(self._sn, f'用戶cookie刷新 {key_list_str} ', display=False)
-
-                    self.__request('https://ani.gamer.com.tw/', check_cookie=True)
-                    # 20210724 动画疯一步到位刷新 Cookie
-                    if 'BAHARUNE' in f.headers.get('set-cookie', ''):
+                    
+                    # Get last session baharune
+                    last_session_baharune = self._cookies.get('BAHARUNE')
+                    # Update the current sesssion cookie to the variable
+                    self._cookies.update({k: v for k, v in self._curl_cffi_session.cookies.get_dict().items() if v is not None})
+                    current_session_baharune = self._cookies.get('BAHARUNE')
+                    
+                    if current_session_baharune is not None and last_session_baharune != current_session_baharune:
+                        Config.renew_cookies(self._cookies, log=False)
                         err_print(0, '用戶cookie已更新', status=2, no_sn=True)
+                        key_list_str = ', '.join(self._curl_cffi_session.cookies.keys())
+                        err_print(self._sn, f'用戶cookie刷新 {key_list_str} ', display=False)
+                        
+                        # 20210724 动画疯一步到位刷新 Cookie
+                        self.__request('https://ani.gamer.com.tw/', check_cookie=True)
+                        self._cookies.update({k: v for k, v in self._curl_cffi_session.cookies.get_dict().items() if v is not None})
+                        Config.renew_cookies(self._cookies, log=False)
+ 
                         if self._settings['use_mobile_api']:
                             # 当使用 APP API 临时切换至 Web API 更新 Cookie 时，Cookie 更新成功再切换回 App Header
                             self._req_header = self._mobile_header

@@ -14,7 +14,7 @@ class Danmu():
         self._sn = sn
         self._full_filename = full_filename
         self._cookies = cookies
-        impersonate: curl_cffi.BrowserTypeLiteral = "chrome"
+        impersonate: curl_cffi.BrowserTypeLiteral = "chrome124"
         if 'firefox' in self._settings['ua'].lower():
            impersonate = "firefox"
         self._curl_cffi_session = curl_cffi.Session(impersonate=impersonate)

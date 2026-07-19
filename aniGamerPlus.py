@@ -778,7 +778,7 @@ def __init_proxy():
 
 
 def do_request(url, headers, cookies, params=None):
-    return requests.get(url, headers=headers, cookies=cookies, params=params, impersonate="chrome")
+    return requests.get(url, headers=headers, cookies=cookies, params=params, impersonate="chrome124")
 
 
 def parse_anime(soup, animes, headers, cookies):

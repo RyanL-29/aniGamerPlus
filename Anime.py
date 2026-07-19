@@ -22,7 +22,6 @@ from urllib.parse import quote
 
 import curl_cffi
 import requests
-from bs4 import BeautifulSoup
 
 import Config
 from ColorPrint import err_print
@@ -66,7 +65,7 @@ class Anime:
         self.upload_succeed_flag = False
         self._danmu = False
         self._mobile_src: dict
-        self._src: BeautifulSoup
+        self._src: dict
         self._proxies = {}
 
         self.season_title_filter = re.compile('第[零一二三四五六七八九十]{1,3}季$')
@@ -83,7 +82,7 @@ class Anime:
             if self._settings['use_proxy']:  # 使用代理
                 self.__init_proxy()
             self.__init_header()  # http header
-            self.__get_src()  # 获取网页, 产生 self._src (BeautifulSoup)
+            self.__get_src()  # 获取api, 产生 self._src
             self.__get_title()  # 提取页面标题
             self.__get_bangumi_name()  # 提取本番名字
             self.__get_episode()  # 提取剧集码，str
@@ -147,9 +146,8 @@ class Anime:
         if self._settings['use_mobile_api']:
             self._mobile_src = self.__request_json(f'https://api.gamer.com.tw/mobile_app/anime/v4/video.php?sn={self._sn}', no_cookies=True)
         else:
-            req = f'https://ani.gamer.com.tw/animeVideo.php?sn={self._sn}'
-            f = self.__request(req, no_cookies=True)
-            self._src = BeautifulSoup(f.content, "lxml")
+            req = f'https://api.gamer.com.tw/anime/v1/video.php?videoSn={self._sn}'
+            self._src = self.__request_json(req, no_cookies=True)
 
     def __get_title(self):
         if self._settings['use_mobile_api']:
@@ -160,17 +158,11 @@ class Anime:
                 self._episode_list = {}
                 sys.exit(1)
         else:
-            soup = self._src
             try:
-                self._title = soup.find('div', attrs={'class':'anime_name'}).h1.string  # type: ignore # 提取标题（含有集数）
-            except (TypeError, AttributeError):
-                page_title = soup.title.string if soup.title else ''
-                if soup.find('div', class_='captcha') is not None or '系統異常' in str(page_title):
-                    # 收到的是 WAF 人機驗證頁, 不是動畫頁
-                    err_print(self._sn, 'ERROR: 頁面被反爬蟲機制攔截 (人機驗證頁)', status=1)
-                else:
-                    # 该sn下没有动画
-                    err_print(self._sn, 'ERROR: 該 sn 下真的有動畫？', status=1)
+                self._title = self._src['data']['anime']['title']
+            except KeyError:
+                # 该sn下没有动画
+                err_print(self._sn, f'ERROR: 該 sn 下真的有動畫？ {self._src}', status=1)
                 self._episode_list = {}
                 sys.exit(1)
 
@@ -202,16 +194,7 @@ class Anime:
         if self._settings['use_mobile_api']:
             get_ep()
         else:
-            soup = self._src
-            try:
-                #  适用于存在剧集列表
-                self._episode = str(soup.find('li', 'playing').a.string) # type: ignore
-            except AttributeError:
-                # 如果这个sn就一集, 不存在剧集列表的情况
-                # https://github.com/miyouzi/aniGamerPlus/issues/36#issuecomment-605065988
-                # self._episode = re.findall(r'\[.+?\]', self._title)  # 非贪婪匹配
-                # self._episode = str(self._episode[0][1:-1])  # 考虑到 .5 集和 sp、ova 等存在，以str储存
-                get_ep()
+            get_ep()
 
     def __get_episode_list(self):
         if self._settings['use_mobile_api']:
@@ -228,27 +211,18 @@ class Anime:
                     else: # 中文電影
                         self._episode_list['中文電影'] = int(_sn["videoSn"])
         else:
-            try:
-                a = self._src.find('section', 'season').find_all('a') # type: ignore
-                p = self._src.find('section', 'season').find_all('p') # type: ignore
-                # https://github.com/miyouzi/aniGamerPlus/issues/9
-                # 样本 https://ani.gamer.com.tw/animeVideo.php?sn=10210
-                # 20190413 动画疯将特别篇分离
-                index_counter = {}  # 记录剧集数字重复次数, 用作列表类型的索引 ('本篇', '特別篇')
-                if len(p) > 0:
-                    p = list(map(lambda x: x.contents[0], p))
-                for i in a:
-                    sn = int(i['href'].replace('?sn=', ''))
-                    ep = str(i.string)
-                    if ep not in index_counter.keys():
-                        index_counter[ep] = 0
-                    if ep in self._episode_list.keys():
-                        index_counter[ep] = index_counter[ep] + 1
-                        ep = p[index_counter[ep]] + ep
-                    self._episode_list[ep] = sn
-            except AttributeError:
-                # 当只有一集时，不存在剧集列表，self._episode_list 只有本身
-                self._episode_list[self._episode] = self._sn
+            for _type in self._src['data']['anime']['episodes']:
+                for _sn in self._src['data']['anime']['episodes'][_type]:
+                    if _type == '0': # 本篇
+                        self._episode_list[str(_sn['episode'])] = int(_sn["videoSn"])
+                    elif _type == '1': # 電影
+                        self._episode_list['電影'] = int(_sn["videoSn"])
+                    elif _type == '2': # 特別篇
+                        self._episode_list[f'特別篇{_sn["episode"]}'] = int(_sn["videoSn"])
+                    elif _type == '3': # 中文配音
+                        self._episode_list[f'中文配音{_sn["episode"]}'] = int(_sn["videoSn"])
+                    else: # 中文電影
+                        self._episode_list['中文電影'] = int(_sn["videoSn"])
 
     def __init_header(self):
         # 伪装为浏览器
@@ -274,7 +248,14 @@ class Anime:
                 "Accept": accept,
                 "Accept-Encoding": accept_encoding,
                 "Cache-Control": cache_control,
-                "Sec-Ch-Ua": sec_ch_ua
+                "Sec-Ch-Ua": sec_ch_ua,
+                "Sec-Ch-Ua-Mobile": "?0",
+                "Sec-Ch-Ua-Platform": '"Windows"',
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1",
+                "Upgrade-Insecure-Requests": 1
             }
         if self._settings['use_mobile_api']:
             self._req_header = self._mobile_header
@@ -317,8 +298,8 @@ class Anime:
                     if show_fail:
                         err_print(self._sn, '任務狀態', '触发 Cloudflare 403，已获取 __cf_bm，3s后重试...')
                     
-                    cookies["__cf_bm"] = self._curl_cffi_session.cookies.get("__cf_bm", "") # type: ignore
-                    time.sleep(3)
+                    cookies = self._curl_cffi_session.cookies.get_dict()
+                    time.sleep(1)
                     error_cnt += 1
                     continue
             
@@ -373,7 +354,7 @@ class Anime:
                             # 即使切换 header cookie 也无法刷新, 那么恢复 header, 好歹广告只有 3s
                             self._req_header = self._mobile_header
 
-                elif 'BAHARUNE' in f.headers.get('set-cookie'):
+                else:
                     # 本线程收到了新cookie
                     # 20220115 简化 cookie 刷新逻辑
                     err_print(self._sn, '收到新cookie', display=False)
@@ -385,7 +366,8 @@ class Anime:
                     self.__request('https://ani.gamer.com.tw/', check_cookie=True)
                     self._cookies.update({k: v for k, v in self._curl_cffi_session.cookies.get_dict().items() if v is not None})
                     Config.renew_cookies(self._cookies, log=False)
-                    err_print(0, '用戶cookie已更新', status=2, no_sn=True)
+                    if 'BAHARUNE' in f.headers.get('set-cookie'):
+                        err_print(0, '用戶cookie已更新', status=2, no_sn=True)
 
                     if self._settings['use_mobile_api']:
                         # 当使用 APP API 临时切换至 Web API 更新 Cookie 时，Cookie 更新成功再切换回 App Header
@@ -658,32 +640,12 @@ class Anime:
         anime_description = ""
         anime_cover_link = ""
 
-        if not self._settings['use_mobile_api']:
-            anime_meta = self._src.find_all('meta')
-            anime_description_rq = self.__request_json(f'https://api.gamer.com.tw/anime/v1/video.php?videoSn={self._sn}', no_cookies=True)
-            raw_anime_description = None
-            if isinstance(anime_description_rq, dict) and anime_description_rq.get('data'):
-                try:
-                    full_anime_description_html = anime_description_rq['data']['anime']['contentHtml']
-                    anime_description_html_list = full_anime_description_html.split('＜製作團隊＞')
-                    if len(anime_description_html_list) >= 2:
-                        raw_anime_description = BeautifulSoup(anime_description_html_list[0], 'html.parser').get_text(separator=" ", strip=True)
-                except Exception:
-                    pass
-                
-            if raw_anime_description is None:
-                raw_anime_description = self._src.find('div', 'data-intro') # type: ignore
-                if raw_anime_description is None:
-                    raw_anime_description = ""
-                else:
-                    raw_anime_description = raw_anime_description.p.string or ""
-            anime_description = re.sub(r'\s+', ' ', raw_anime_description)  # 去除重复空格
-            for m in anime_meta:
-              if m.get('name') == 'thumbnail':
-                anime_cover_link = m.get('content')
-        else:
+        if self._settings['use_mobile_api']:
             anime_description = self._mobile_src['data']['anime']['content'] # type: ignore
             anime_cover_link = self._mobile_src['data']['anime']['cover'] # type: ignore
+        else:
+            anime_description = self._src['data']['anime']['content'] # type: ignore
+            anime_cover_link = self._src['data']['anime']['cover'] # type: ignore
 
         ssl._create_default_https_context = ssl._create_unverified_context
         urllib.request.urlretrieve(anime_cover_link, os.path.join(temp_dir, 'cover.jpg')) # type: ignore
@@ -899,20 +861,12 @@ class Anime:
         anime_description = ""
         anime_cover_link = ""
 
-        if not self._settings['use_mobile_api']:
-            anime_meta = self._src.find_all('meta')
-            raw_anime_description = self._src.find('div', 'data-intro') # type: ignore
-            if raw_anime_description is None:
-                raw_anime_description = ""
-            else:
-                raw_anime_description = raw_anime_description.p.string or ""
-            anime_description = re.sub(r'\s+', ' ', raw_anime_description)  # 去除重复空格
-            for m in anime_meta:
-              if m.get('name') == 'thumbnail':
-                anime_cover_link = m.get('content')
-        else:
+        if self._settings['use_mobile_api']:
             anime_description = self._mobile_src['data']['anime']['content'] # type: ignore
             anime_cover_link = self._mobile_src['data']['anime']['cover'] # type: ignore
+        else:
+            anime_description = self._src['data']['anime']['content'] # type: ignore
+            anime_cover_link = self._src['data']['anime']['cover'] # type: ignore
 
         ssl._create_default_https_context = ssl._create_unverified_context
         urllib.request.urlretrieve(anime_cover_link, os.path.join(self._temp_dir, f'{str(self._sn)}_cover.jpg')) # type: ignore

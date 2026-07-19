@@ -166,7 +166,7 @@ def insert_db(anime):
     db_locker.release()
 
 
-def update_db(anime):
+def update_db(anime: Anime):
     db_locker.acquire()
     # 更新数据库 status, resolution, file_size 资料
     anime_dict = {}

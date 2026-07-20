@@ -292,13 +292,13 @@ class Anime:
                 time.sleep(3)
                 error_cnt += 1
             else:
-                if f.status_code == 403 and "__cf_bm" in self._curl_cffi_session.cookies:
+                if f.status_code == 403 and "__cf_bm" in f.cookies:
                     if error_cnt >= max_retry >= 0:
                         raise TryTooManyTimeError('任務狀態: sn=' + str(self._sn) + ' Cloudflare拦截次数过多！请求链接：\n%s' % req)
                     if show_fail:
                         err_print(self._sn, '任務狀態', '触发 Cloudflare 403，已获取 __cf_bm，3s后重试...')
                     
-                    cookies = self._curl_cffi_session.cookies.get_dict()
+                    cookies = f.cookies.get_dict()
                     time.sleep(1)
                     error_cnt += 1
                     continue
@@ -308,11 +308,11 @@ class Anime:
         # 处理 cookie
         if not self._cookies:
             # 当实例中尚无 cookie, 则读取
-            self._cookies = {k: (v if v is not None else "") for k, v in self._curl_cffi_session.cookies.get_dict().items()}
+            self._cookies = {k: (v if v is not None else "") for k, v in f.cookies.get_dict().items()}
         elif 'nologinuser' not in self._cookies.keys() and 'BAHAID' not in self._cookies.keys():
             # 处理游客cookie
-            if 'nologinuser' in self._curl_cffi_session.cookies.keys():
-                self._cookies = {k: (v if v is not None else "") for k, v in self._curl_cffi_session.cookies.get_dict().items()} 
+            if 'nologinuser' in f.cookies.keys():
+                self._cookies = {k: (v if v is not None else "") for k, v in f.cookies.get_dict().items()} 
         elif not check_cookie and no_cookies is False:  # 如果用户提供了 cookie, 则处理cookie刷新
             if 'set-cookie' in f.headers.keys():  # 发现server响应了set-cookie
                 if 'deleted' in f.headers.get('set-cookie', ''):
@@ -358,24 +358,23 @@ class Anime:
                     # 本线程收到了新cookie
                     # 20220115 简化 cookie 刷新逻辑
                     err_print(self._sn, '收到新cookie', display=False)
-                    self._cookies.update({k: v for k, v in self._curl_cffi_session.cookies.get_dict().items() if v is not None})
+                    self._cookies.update({k: v for k, v in f.cookies.get_dict().items() if v is not None})
+                    self._cookies.pop("__cf_bm", None)
                     Config.renew_cookies(self._cookies, log=False)
-                    key_list_str = ', '.join(self._curl_cffi_session.cookies.keys())
+                    
+                    key_list_str = ', '.join(f.cookies.keys())
                     err_print(self._sn, f'用戶cookie刷新 {key_list_str} ', display=False)
                     
                     # 20210724 动画疯一步到位刷新 Cookie
                     self.__request('https://ani.gamer.com.tw/', check_cookie=True)
-                    self._cookies.update({k: v for k, v in self._curl_cffi_session.cookies.get_dict().items() if v is not None})
-                    # Remove the __cf_bm from cookie. Because __cf_bm will expire every 30 minutes.
-                    self._cookies.pop("__cf_bm", None)
-                    Config.renew_cookies(self._cookies, log=False)
+                    
                     if 'BAHARUNE' in f.headers.get('set-cookie'):
                         err_print(0, '用戶cookie已更新', status=2, no_sn=True)
 
-                    if self._settings['use_mobile_api']:
-                        # 当使用 APP API 临时切换至 Web API 更新 Cookie 时，Cookie 更新成功再切换回 App Header
-                        self._req_header = self._mobile_header
-                        err_print(self._sn, '切換回 App Header 進行影片解析', display=False)
+                        if self._settings['use_mobile_api']:
+                            # 当使用 APP API 临时切换至 Web API 更新 Cookie 时，Cookie 更新成功再切换回 App Header
+                            self._req_header = self._mobile_header
+                            err_print(self._sn, '切換回 App Header 進行影片解析', display=False)
 
         return f
 

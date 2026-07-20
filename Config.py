@@ -745,6 +745,7 @@ def read_cookie(log=False):
                     cookies = line.replace('\n', '')  # 刪除换行符
                     cookies = dict([list(map(lambda x: quote(x, safe='') if re.match(r'[\u4e00-\u9fa5]', x) else x,  y.split("=", 1))) for y in cookies.split("; ")])
                     cookies.pop('ckBH_lastBoard', 404)
+                    cookies.pop('__cf_bm', 404)
                     cookie = cookies
                     if log:
                         __color_print(0, '讀取cookie', detail='已讀取cookie', no_sn=True, display=False)

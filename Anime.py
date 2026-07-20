@@ -358,6 +358,7 @@ class Anime:
                     # 本线程收到了新cookie
                     # 20220115 简化 cookie 刷新逻辑
                     err_print(self._sn, '收到新cookie', display=False)
+                    self._cookies.update({k: v for k, v in self._curl_cffi_session.cookies.get_dict().items() if v is not None})
                     Config.renew_cookies(self._cookies, log=False)
                     key_list_str = ', '.join(self._curl_cffi_session.cookies.keys())
                     err_print(self._sn, f'用戶cookie刷新 {key_list_str} ', display=False)
@@ -365,6 +366,8 @@ class Anime:
                     # 20210724 动画疯一步到位刷新 Cookie
                     self.__request('https://ani.gamer.com.tw/', check_cookie=True)
                     self._cookies.update({k: v for k, v in self._curl_cffi_session.cookies.get_dict().items() if v is not None})
+                    # Remove the __cf_bm from cookie. Because __cf_bm will expire every 30 minutes.
+                    self._cookies.pop("__cf_bm", None)
                     Config.renew_cookies(self._cookies, log=False)
                     if 'BAHARUNE' in f.headers.get('set-cookie'):
                         err_print(0, '用戶cookie已更新', status=2, no_sn=True)

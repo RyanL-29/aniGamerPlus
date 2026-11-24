@@ -110,8 +110,8 @@ def __init_settings():
                 'video_filename_extension': 'mp4',  # 视频扩展名/封装格式
                 'zerofill': 1,  # 剧集名补零, 此项填补足位数, 小于等于 1 即不补零
                 # cookie的自动刷新对 UA 有检查
-                'ua': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.96 Safari/537.36",
-                'sec_ch_ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+                'ua': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+                'sec_ch_ua': '"Chromium";v="152", "Google Chrome";v="152", "Not-A.Brand";v="99"',
                 'use_proxy': False,
                 'proxy': 'http://user:passwd@example.com:1000',  # 代理功能, config_version v13.0 删除链式代理
                 "no_proxy_akamai": False,  # 不代理 akamai CDN
@@ -406,7 +406,7 @@ def __update_settings(old_settings):  # 升级配置文件
        new_settings['seconds_offset'] = 0
        
     if 'sec_ch_ua' not in new_settings.keys():
-        new_settings['sec_ch_ua'] = '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"'
+        new_settings['sec_ch_ua'] = '"Chromium";v="152", "Google Chrome";v="152", "Not-A.Brand";v="99"'
 
     new_settings['config_version'] = latest_config_version
     with open(config_path, 'w', encoding='utf-8') as f:

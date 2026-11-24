@@ -43,7 +43,7 @@ class Anime:
         self._bangumi_dir = self._settings['bangumi_dir']
         self._temp_dir = self._settings['temp_dir']
         self._gost_port = str(gost_port)
-        impersonate: curl_cffi.BrowserTypeLiteral = "chrome124"
+        impersonate: curl_cffi.BrowserTypeLiteral = "chrome152"
         if 'firefox' in self._settings['ua'].lower():
             impersonate = "firefox"
         self._curl_cffi_session = curl_cffi.Session(impersonate=impersonate)
